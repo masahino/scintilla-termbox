@@ -217,8 +217,10 @@ public:
     }
     //int right = std::min(static_cast<int>(rc.right), reinterpret_cast<TermboxWin *>(win)->right);
     int right = static_cast<int>(rc.right);
+    int bottom = static_cast<int>(rc.bottom);
     if (win) {
       right = std::min(right, reinterpret_cast<TermboxWin *>(win)->right);
+      bottom = std::min(bottom, reinterpret_cast<TermboxWin *>(win)->bottom);
       fprintf(stderr, "win->right = %d\n", reinterpret_cast<TermboxWin *>(win)->right);
     }
 //    fprintf(stderr, "right = %d\n", right);
@@ -317,7 +319,7 @@ public:
         chars += grapheme_width(text.data() + bytes);
       if (chars > clip_chars) break;
     }
-    //fprintf(stderr, "(%d, %d, %06x, %06x) %s\n", x, y, fore.OpaqueRGB(), back.OpaqueRGB(), text.data());
+    fprintf(stderr, "(%d, %d, %06x, %06x) %s\n", x, y, fore.OpaqueRGB(), back.OpaqueRGB(), text.data());
     for (int i = 0; i < bytes; i++) {
       tb_change_cell(x, y, text.at(i), fore.OpaqueRGB() | attrs, back.OpaqueRGB());
       x++;
@@ -344,12 +346,13 @@ public:
    */
   void DrawTextTransparent(PRectangle rc, const Font *font_, XYPOSITION ybase,
     std::string_view text, ColourRGBA fore) override {
-    if (static_cast<int>(rc.top) > reinterpret_cast<TermboxWin *>(win)->Width() - 1) return;
+    if (static_cast<int>(rc.top) > reinterpret_cast<TermboxWin *>(win)->bottom - 1) return;
+    struct tb_cell *buffer = tb_cell_buffer();
 //    attr_t attrs = mvwinch(win, static_cast<int>(rc.top), static_cast<int>(rc.left));
 //    short pair = PAIR_NUMBER(attrs), unused, back = COLOR_BLACK;
 //    if (pair > 0 && !isCallTip) pair_content(pair, &unused, &back);
 //    fprintf(stderr, "%x\n", this->vs.styles[0].back.OpaqueRGB());
-    DrawTextNoClip(rc, font_, ybase, text, fore, ColourRGBA(0x181818));
+    DrawTextNoClip(rc, font_, ybase, text, fore, ColourRGBA(buffer[static_cast<int>(rc.top) * tb_width() + static_cast<int>(rc.left)].bg));
   }
   /**
    * Measures the width of characters in the given string and writes them to the given position
@@ -876,10 +879,11 @@ public:
   }
   /** Draws the vertical scroll bar. */
   void SetVerticalScrollPos() override {
-    int maxy = tb_height();
-    int maxx = tb_width();
+    int maxy = reinterpret_cast<TermboxWin *>(wMain.GetID())->Height();
+fprintf(stderr, "maxy = %d\n", maxy);
+    int maxx = reinterpret_cast<TermboxWin *>(wMain.GetID())->Width();
     // Draw the gutter.
-    for (int i = 0; i < maxy; i++) tb_change_cell(maxx -1, i, 0x2588, 0xffffff, 0x000000);
+    for (int i = 0; i < maxy; i++) tb_change_cell(maxx - 1, i, 0x2591, 0xffffff, 0x000000);
     // Draw the bar.
     scrollBarVPos = static_cast<float>(topLine) / (MaxScrollPos() + LinesOnScreen() - 1) * maxy;
     for (int i = scrollBarVPos; i < scrollBarVPos + scrollBarHeight; i++)
@@ -888,8 +892,8 @@ public:
   /** Draws the horizontal scroll bar. */
   void SetHorizontalScrollPos() override {
     if (!horizontalScrollBarVisible) return;
-    int maxy = tb_height();
-    int maxx = tb_width();
+    int maxy = reinterpret_cast<TermboxWin *>(wMain.GetID())->Height();
+    int maxx = reinterpret_cast<TermboxWin *>(wMain.GetID())->Width();
     // Draw the gutter.
 //    wattr_set(w, 0, term_color_pair(COLOR_WHITE, COLOR_BLACK), nullptr);
     for (int i = 0; i < maxx; i++) tb_change_cell(i, maxy - 1, 0x2588, 0xffffff, 0x000000);
@@ -905,8 +909,8 @@ public:
    * is based on the width of the view and the view's scroll width property.
    */
   bool ModifyScrollBars(Sci::Line nMax, Sci::Line nPage) override {
-    int maxy = tb_height();
-    int maxx = tb_width();
+    int maxy = reinterpret_cast<TermboxWin *>(wMain.GetID())->Height();
+    int maxx = reinterpret_cast<TermboxWin *>(wMain.GetID())->Width();
     int height = roundf(static_cast<float>(nPage) / nMax * maxy);
     scrollBarHeight = std::clamp(height, 1, maxy);
     int width = roundf(static_cast<float>(maxx) / scrollWidth * maxx);
@@ -1040,8 +1044,8 @@ public:
   void Refresh() {
     rcPaint.top = 0;
     rcPaint.left = 0; // paint from (0, 0), not (begy, begx)
-    rcPaint.bottom = tb_height();
-    rcPaint.right = tb_width();
+    rcPaint.bottom = reinterpret_cast<TermboxWin *>(wMain.GetID())->Height();
+    rcPaint.right = reinterpret_cast<TermboxWin *>(wMain.GetID())->Width();
     if (rcPaint.bottom != height || rcPaint.right != width) {
       height = rcPaint.bottom;
       width = rcPaint.right;
