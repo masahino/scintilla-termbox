@@ -54,6 +54,10 @@ void scintilla_refresh(void *sci);
  * @param sci The Scintilla window returned by `scintilla_new()`.
  */
 void scintilla_delete(void *sci);
+/**
+ * Resize Scintilla window.
+ */
+void scintilla_resize(void *sci, int width, int height);
 
 #define IMAGE_MAX 31
 

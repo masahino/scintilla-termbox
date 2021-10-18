@@ -25,19 +25,19 @@ int main(int argc, char **argv) {
   }
   tb_select_output_mode(5);
   Scintilla *sci = scintilla_new(scnotification, NULL);
-  SSM(SCI_STYLESETFORE, STYLE_DEFAULT, 0xFFFFFF);
-  SSM(SCI_STYLESETBACK, STYLE_DEFAULT, 0);
+  SSM(SCI_STYLESETFORE, STYLE_DEFAULT, 0xd8d8d8);
+  SSM(SCI_STYLESETBACK, STYLE_DEFAULT, 0x181818);
   SSM(SCI_STYLECLEARALL, 0, 0);
   SSM(SCI_SETCARETSTYLE, 2, 0);
 //  SSM(SCI_SETILEXER, 0, (sptr_t)lexer("cpp"));
   ILexer5 *pLexer = CreateLexer("cpp");
   SSM(SCI_SETILEXER, 0, (sptr_t)pLexer);
   SSM(SCI_SETKEYWORDS, 0, (sptr_t) "int char");
-  SSM(SCI_STYLESETFORE, SCE_C_COMMENT, 0x00FF00);
-  SSM(SCI_STYLESETFORE, SCE_C_COMMENTLINE, 0x00FF00);
-  SSM(SCI_STYLESETFORE, SCE_C_NUMBER, 0xFFFF00);
-  SSM(SCI_STYLESETFORE, SCE_C_WORD, 0xFF0000);
-  SSM(SCI_STYLESETFORE, SCE_C_STRING, 0xFF00FF);
+  SSM(SCI_STYLESETFORE, SCE_C_COMMENT, 0x383838);
+  SSM(SCI_STYLESETFORE, SCE_C_COMMENTLINE, 0x383838);
+  SSM(SCI_STYLESETFORE, SCE_C_NUMBER, 0xdc9656);
+  SSM(SCI_STYLESETFORE, SCE_C_WORD, 0x7cafc2);
+  SSM(SCI_STYLESETFORE, SCE_C_STRING, 0xa1b56c);
   SSM(SCI_STYLESETBOLD, SCE_C_OPERATOR, 1);
   // clang-format off
   SSM(SCI_INSERTTEXT, 0, (sptr_t)
@@ -85,6 +85,9 @@ while (tb_poll_event(&ev))
           break;
         case TB_KEY_ENTER:
           c = SCK_RETURN;
+          break;
+        case TB_KEY_CTRL_A:
+          scintilla_resize(sci, 20, 20);
           break;
         default:
           break;

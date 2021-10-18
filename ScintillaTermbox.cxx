@@ -66,6 +66,19 @@
 using namespace Scintilla;
 using namespace Scintilla::Internal;
 
+struct TermboxWin {
+  int left;
+  int top;
+  int right;
+  int bottom;
+
+  explicit TermboxWin(int left_, int top_, int right_, int bottom_) noexcept :
+                left(left_), top(top_), right(right_), bottom(bottom_) {
+        }
+        int Width() const noexcept { return right - left; }
+        int Height() const noexcept { return bottom - top; }
+};
+
 // Font handling.
 
 /**
@@ -202,8 +215,15 @@ public:
 //      wcolor_set(win, term_color_pair(COLOR_BLACK, COLOR_BLACK), nullptr);
 //      rc.right = static_cast<int>(rc.right), ch = ACS_BULLET | A_BOLD;
     }
+    //int right = std::min(static_cast<int>(rc.right), reinterpret_cast<TermboxWin *>(win)->right);
+    int right = static_cast<int>(rc.right);
+    if (win) {
+      right = std::min(right, reinterpret_cast<TermboxWin *>(win)->right);
+      fprintf(stderr, "win->right = %d\n", reinterpret_cast<TermboxWin *>(win)->right);
+    }
+//    fprintf(stderr, "right = %d\n", right);
     for (int y = rc.top; y < rc.bottom; y++) {
-      for (int x = rc.left; x < rc.right; x++) {
+      for (int x = rc.left; x < right; x++) {
         tb_change_cell(x, y, ch, 0xffffff, fill.colour.OpaqueRGB());
       }
     }
@@ -271,7 +291,7 @@ public:
   void DrawTextNoClip(PRectangle rc, const Font *font_, XYPOSITION ybase, std::string_view text,
     ColourRGBA fore, ColourRGBA back) override {
     
-//    uint32_t attrs = dynamic_cast<const FontImpl *>(font_)->attrs;
+    uint32_t attrs = dynamic_cast<const FontImpl *>(font_)->attrs;
     if (rc.left < clip.left) {
       // Do not overwrite margin text.
       int clip_chars = static_cast<int>(clip.left - rc.left);
@@ -288,7 +308,7 @@ public:
       rc.left = clip.left;
     }
     // Do not write beyond right window boundary.
-    int clip_chars = tb_width() - rc.left;
+    int clip_chars = reinterpret_cast<TermboxWin *>(win)->Width() - rc.left;
     size_t bytes = 0;
     int x = rc.left;
     int y = rc.top;
@@ -298,8 +318,8 @@ public:
       if (chars > clip_chars) break;
     }
     //fprintf(stderr, "(%d, %d, %06x, %06x) %s\n", x, y, fore.OpaqueRGB(), back.OpaqueRGB(), text.data());
-    for (int i = 0; i < text.length(); i++) {
-      tb_change_cell(x, y, text.at(i), fore.OpaqueRGB(), back.OpaqueRGB());
+    for (int i = 0; i < bytes; i++) {
+      tb_change_cell(x, y, text.at(i), fore.OpaqueRGB() | attrs, back.OpaqueRGB());
       x++;
     }
 //    tb_set_cursor(x, y);
@@ -324,11 +344,12 @@ public:
    */
   void DrawTextTransparent(PRectangle rc, const Font *font_, XYPOSITION ybase,
     std::string_view text, ColourRGBA fore) override {
-    if (static_cast<int>(rc.top) > tb_width() - 1) return;
+    if (static_cast<int>(rc.top) > reinterpret_cast<TermboxWin *>(win)->Width() - 1) return;
 //    attr_t attrs = mvwinch(win, static_cast<int>(rc.top), static_cast<int>(rc.left));
 //    short pair = PAIR_NUMBER(attrs), unused, back = COLOR_BLACK;
 //    if (pair > 0 && !isCallTip) pair_content(pair, &unused, &back);
-    DrawTextNoClip(rc, font_, ybase, text, fore, BLACK);
+//    fprintf(stderr, "%x\n", this->vs.styles[0].back.OpaqueRGB());
+    DrawTextNoClip(rc, font_, ybase, text, fore, ColourRGBA(0x181818));
   }
   /**
    * Measures the width of characters in the given string and writes them to the given position
@@ -505,7 +526,8 @@ void Window::Destroy() noexcept {
  * @return PRectangle with the window's boundaries.
  */
 PRectangle Window::GetPosition() const {
-  return PRectangle(0, 0, tb_width(), tb_height());
+  return PRectangle(0, 0, reinterpret_cast<TermboxWin *>(wid)->Width(),
+    reinterpret_cast<TermboxWin *>(wid)->Height());
 }
 /**
  * Sets the position of the window relative to its parent window.
@@ -839,7 +861,8 @@ public:
     // initialization code for Termbox
     height = tb_height();
     width = tb_width();
-    wMain = tb_cell_buffer();
+//    wMain = tb_cell_buffer();
+    wMain = new TermboxWin(0, 0, width, height);
     if (sur) sur->Init(wMain.GetID());
     InvalidateStyleRedraw(); // needed to fully initialize Scintilla
   }
@@ -1046,22 +1069,35 @@ public:
   void KeyPress(int key, bool shift, bool ctrl, bool alt) {
     KeyDownWithModifiers(static_cast<Keys>(key), ModifierFlags(shift, ctrl, alt), nullptr);
   }
-
+  /**
+   * Resize Scintilla Window.
+   */
+  void Resize(int width, int height) {
+    reinterpret_cast<TermboxWin *>(wMain.GetID())->right =
+    reinterpret_cast<TermboxWin *>(wMain.GetID())->left + width;
+    reinterpret_cast<TermboxWin *>(wMain.GetID())->bottom =
+    reinterpret_cast<TermboxWin *>(wMain.GetID())->top + height;
+    tb_clear();
+    Refresh();
+  }
 };
 
 // Link with C. Documentation in ScintillaCurses.h.
 extern "C" {
-void *scintilla_new(void (*callback)(void *, int, SCNotification *, void *), void *userdata) {
+  void *scintilla_new(void (*callback)(void *, int, SCNotification *, void *), void *userdata) {
     return reinterpret_cast<void *>(new ScintillaTermbox(callback, userdata));
-}
-sptr_t scintilla_send_message(void *sci, unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
-  return reinterpret_cast<ScintillaTermbox *>(sci)->WndProc(
-    static_cast<Message>(iMessage), wParam, lParam);
-}
-void scintilla_send_key(void *sci, int key, bool shift, bool ctrl, bool alt) {
-  reinterpret_cast<ScintillaTermbox *>(sci)->KeyPress(key, shift, ctrl, alt);
-}
-void scintilla_refresh(void *sci) { reinterpret_cast<ScintillaTermbox *>(sci)->Refresh(); }
-void scintilla_delete(void *sci) { delete reinterpret_cast<ScintillaTermbox *>(sci); }
+  }
+  sptr_t scintilla_send_message(void *sci, unsigned int iMessage, uptr_t wParam, sptr_t lParam) {
+    return reinterpret_cast<ScintillaTermbox *>(sci)->WndProc(
+      static_cast<Message>(iMessage), wParam, lParam);
+  }
+  void scintilla_send_key(void *sci, int key, bool shift, bool ctrl, bool alt) {
+    reinterpret_cast<ScintillaTermbox *>(sci)->KeyPress(key, shift, ctrl, alt);
+  }
+  void scintilla_refresh(void *sci) { reinterpret_cast<ScintillaTermbox *>(sci)->Refresh(); }
+  void scintilla_delete(void *sci) { delete reinterpret_cast<ScintillaTermbox *>(sci); }
+  void scintilla_resize(void *sci, int width, int height) {
+    reinterpret_cast<ScintillaTermbox *>(sci)->Resize(width, height);
+  }
 }
 
