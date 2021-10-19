@@ -127,6 +127,8 @@ class SurfaceImpl : public Surface {
    * @param s The string that contains the first UTF-8 character to display.
    */
   int grapheme_width(const char *s) {
+    int len = utf8_char_length(s[0]);
+    if (len > 1) return 2;
     return 1;
   }
 
@@ -221,9 +223,7 @@ public:
     if (win) {
       right = std::min(right, reinterpret_cast<TermboxWin *>(win)->right);
       bottom = std::min(bottom, reinterpret_cast<TermboxWin *>(win)->bottom);
-      fprintf(stderr, "win->right = %d\n", reinterpret_cast<TermboxWin *>(win)->right);
     }
-//    fprintf(stderr, "right = %d\n", right);
     for (int y = rc.top; y < rc.bottom; y++) {
       for (int x = rc.left; x < right; x++) {
         tb_change_cell(x, y, ch, 0xffffff, fill.colour.OpaqueRGB());
@@ -319,12 +319,28 @@ public:
         chars += grapheme_width(text.data() + bytes);
       if (chars > clip_chars) break;
     }
-    fprintf(stderr, "(%d, %d, %06x, %06x) %s\n", x, y, fore.OpaqueRGB(), back.OpaqueRGB(), text.data());
+//    fprintf(stderr, "%d(%d, %d, %06x, %06x)[%s]\n", bytes, x, y, fore.OpaqueRGB(), back.OpaqueRGB(), text.data());
+
+/*
     for (int i = 0; i < bytes; i++) {
       tb_change_cell(x, y, text.at(i), fore.OpaqueRGB() | attrs, back.OpaqueRGB());
       x++;
     }
-//    tb_set_cursor(x, y);
+*/
+    int len = 0;
+    int width = 0;
+    const char *str = text.data();
+    while (*str) {
+      uint32_t uni;
+      width = grapheme_width(str + len);
+      len += utf8_char_to_unicode(&uni, str + len);
+      tb_change_cell(x, y, uni, fore.OpaqueRGB() | attrs, back.OpaqueRGB());
+      x += width;
+      if (len >= bytes) {
+        break;
+      }
+    }
+
   }
   /**
    * Similar to `DrawTextNoClip()`.
@@ -449,7 +465,9 @@ public:
     case MarkerSymbol::BoxMinusConnected: mvwaddstr(win, rcWhole.top, rcWhole.left, "⊟"); return;
     case MarkerSymbol::CircleMinus:
     case MarkerSymbol::CircleMinusConnected: mvwaddstr(win, rcWhole.top, rcWhole.left, "⊖"); return;
-    case MarkerSymbol::Plus: mvwaddch(win, rcWhole.top, rcWhole.left, '+'); return;
+*/
+    case MarkerSymbol::Plus: tb_change_cell(rcWhole.left, rcWhole.top, '+', marker->fore.OpaqueRGB(), marker->back.OpaqueRGB()); return;
+/*
     case MarkerSymbol::BoxPlus:
     case MarkerSymbol::BoxPlusConnected: mvwaddstr(win, rcWhole.top, rcWhole.left, "⊞"); return;
     case MarkerSymbol::CirclePlus:
@@ -465,7 +483,8 @@ public:
     case MarkerSymbol::LeftRect: mvwaddstr(win, rcWhole.top, rcWhole.left, "▌"); return;
     case MarkerSymbol::Bookmark: mvwaddstr(win, rcWhole.top, rcWhole.left, "Σ"); return;
 */
-    default: break; // prevent warning
+    default:
+      break; // prevent warning
     }
    if (marker->markType >= MarkerSymbol::Character) {
       char ch = static_cast<char>(
@@ -880,7 +899,6 @@ public:
   /** Draws the vertical scroll bar. */
   void SetVerticalScrollPos() override {
     int maxy = reinterpret_cast<TermboxWin *>(wMain.GetID())->Height();
-fprintf(stderr, "maxy = %d\n", maxy);
     int maxx = reinterpret_cast<TermboxWin *>(wMain.GetID())->Width();
     // Draw the gutter.
     for (int i = 0; i < maxy; i++) tb_change_cell(maxx - 1, i, 0x2591, 0xffffff, 0x000000);
@@ -1028,7 +1046,7 @@ fprintf(stderr, "maxy = %d\n", maxy);
       pos = WndProc(Message::PositionBefore, pos, 0); // draw inside selection
     int y = WndProc(Message::PointYFromPosition, 0, pos);
     int x = WndProc(Message::PointXFromPosition, 0, pos);
-    fprintf(stderr, "update cursor pos = %d, %d, %d\n", pos, x, y);
+//    fprintf(stderr, "update cursor pos = %d, %d, %d\n", pos, x, y);
 //    tb_set_cursor(17, 0);
 //    tb_present();
 //    wmove(GetWINDOW(), y, x);

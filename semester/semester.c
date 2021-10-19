@@ -43,6 +43,7 @@ int main(int argc, char **argv) {
   SSM(SCI_INSERTTEXT, 0, (sptr_t)
       "int main(int argc, char **argv) {\n"
       "    // Start up the gnome\n"
+      "    // 日本語でコメント\n"
       "    gnome_init(\"stest\", \"1.0\", argc, argv);\n}");
   // clang-format on
   SSM(SCI_SETPROPERTY, (uptr_t) "fold", (sptr_t) "1");
