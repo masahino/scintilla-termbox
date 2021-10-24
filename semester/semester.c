@@ -36,8 +36,8 @@ int main(int argc, char **argv) {
   SSM(SCI_STYLESETFORE, SCE_C_COMMENT, 0x383838);
   SSM(SCI_STYLESETFORE, SCE_C_COMMENTLINE, 0x383838);
   SSM(SCI_STYLESETFORE, SCE_C_NUMBER, 0xdc9656);
-  SSM(SCI_STYLESETFORE, SCE_C_WORD, 0x7cafc2);
-  SSM(SCI_STYLESETFORE, SCE_C_STRING, 0xa1b56c);
+  SSM(SCI_STYLESETFORE, SCE_C_WORD, 0xaf8bba);
+  SSM(SCI_STYLESETFORE, SCE_C_STRING, 0x6cb5a1);
   SSM(SCI_STYLESETBOLD, SCE_C_OPERATOR, 1);
   // clang-format off
   SSM(SCI_INSERTTEXT, 0, (sptr_t)
@@ -88,7 +88,10 @@ while (tb_poll_event(&ev))
           c = SCK_RETURN;
           break;
         case TB_KEY_CTRL_A:
-          scintilla_resize(sci, 20, 20);
+          scintilla_resize(sci, 40, 20);
+          break;
+        case TB_KEY_CTRL_B:
+          scintilla_move(sci, 10, 5);
           break;
         default:
           break;

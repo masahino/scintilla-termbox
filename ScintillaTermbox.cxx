@@ -132,6 +132,10 @@ class SurfaceImpl : public Surface {
     return 1;
   }
 
+  int to_rgb(ColourRGBA c) {
+    return (c.GetRed() << 16) + (c.GetGreen() << 8)  + (c.GetBlue());
+  }
+
 public:
   /** Allocates a new Scintilla surface for curses. */
   SurfaceImpl() = default;
@@ -220,13 +224,17 @@ public:
     //int right = std::min(static_cast<int>(rc.right), reinterpret_cast<TermboxWin *>(win)->right);
     int right = static_cast<int>(rc.right);
     int bottom = static_cast<int>(rc.bottom);
+    int top = 0;
+    int left = 0;
     if (win) {
       right = std::min(right, reinterpret_cast<TermboxWin *>(win)->right);
       bottom = std::min(bottom, reinterpret_cast<TermboxWin *>(win)->bottom);
+      top = reinterpret_cast<TermboxWin *>(win)->top;
+      left = reinterpret_cast<TermboxWin *>(win)->left;
     }
     for (int y = rc.top; y < rc.bottom; y++) {
       for (int x = rc.left; x < right; x++) {
-        tb_change_cell(x, y, ch, 0xffffff, fill.colour.OpaqueRGB());
+        tb_change_cell(left + x, top + y, ch, 0xffffff, to_rgb(fill.colour));
       }
     }
     tb_present();
@@ -311,6 +319,8 @@ public:
     }
     // Do not write beyond right window boundary.
     int clip_chars = reinterpret_cast<TermboxWin *>(win)->Width() - rc.left;
+    int top = reinterpret_cast<TermboxWin *>(win)->top;
+    int left = reinterpret_cast<TermboxWin *>(win)->left;
     size_t bytes = 0;
     int x = rc.left;
     int y = rc.top;
@@ -334,7 +344,7 @@ public:
       uint32_t uni;
       width = grapheme_width(str + len);
       len += utf8_char_to_unicode(&uni, str + len);
-      tb_change_cell(x, y, uni, fore.OpaqueRGB() | attrs, back.OpaqueRGB());
+      tb_change_cell(left + x, top + y, uni, to_rgb(fore) | attrs, to_rgb(back));
       x += width;
       if (len >= bytes) {
         break;
@@ -363,12 +373,14 @@ public:
   void DrawTextTransparent(PRectangle rc, const Font *font_, XYPOSITION ybase,
     std::string_view text, ColourRGBA fore) override {
     if (static_cast<int>(rc.top) > reinterpret_cast<TermboxWin *>(win)->bottom - 1) return;
+    int y = reinterpret_cast<TermboxWin *>(win)->top + static_cast<int>(rc.top);
+    int x = reinterpret_cast<TermboxWin *>(win)->left + static_cast<int>(rc.left);
     struct tb_cell *buffer = tb_cell_buffer();
 //    attr_t attrs = mvwinch(win, static_cast<int>(rc.top), static_cast<int>(rc.left));
 //    short pair = PAIR_NUMBER(attrs), unused, back = COLOR_BLACK;
 //    if (pair > 0 && !isCallTip) pair_content(pair, &unused, &back);
 //    fprintf(stderr, "%x\n", this->vs.styles[0].back.OpaqueRGB());
-    DrawTextNoClip(rc, font_, ybase, text, fore, ColourRGBA(buffer[static_cast<int>(rc.top) * tb_width() + static_cast<int>(rc.left)].bg));
+    DrawTextNoClip(rc, font_, ybase, text, fore, ColourRGBA(buffer[y * tb_width() + x].bg));
   }
   /**
    * Measures the width of characters in the given string and writes them to the given position
@@ -447,6 +459,9 @@ public:
   /** Draws the text representation of a line marker, if possible. */
   void DrawLineMarker(
     const PRectangle &rcWhole, const Font *fontForCharacter, int tFold, const void *data) {
+    int top = reinterpret_cast<TermboxWin *>(win)->top;
+    int left = reinterpret_cast<TermboxWin *>(win)->left;
+
     // TODO: handle fold marker highlighting.
     const LineMarker *marker = reinterpret_cast<const LineMarker *>(data);
     //wattr_set(win, 0, term_color_pair(marker->fore, marker->back), nullptr);
@@ -459,14 +474,14 @@ public:
     case MarkerSymbol::ShortArrow: mvwaddstr(win, rcWhole.top, rcWhole.left, "→"); return;
     case MarkerSymbol::ArrowDown: mvwaddstr(win, rcWhole.top, rcWhole.left, "▼"); return;
 */
-    case MarkerSymbol::Minus: tb_change_cell(rcWhole.left, rcWhole.top, '-', marker->fore.OpaqueRGB(), marker->back.OpaqueRGB()); return;
+    case MarkerSymbol::Minus: tb_change_cell(left + rcWhole.left, top + rcWhole.top, '-', to_rgb(marker->fore), to_rgb(marker->back)); return;
 /*
     case MarkerSymbol::BoxMinus:
     case MarkerSymbol::BoxMinusConnected: mvwaddstr(win, rcWhole.top, rcWhole.left, "⊟"); return;
     case MarkerSymbol::CircleMinus:
     case MarkerSymbol::CircleMinusConnected: mvwaddstr(win, rcWhole.top, rcWhole.left, "⊖"); return;
 */
-    case MarkerSymbol::Plus: tb_change_cell(rcWhole.left, rcWhole.top, '+', marker->fore.OpaqueRGB(), marker->back.OpaqueRGB()); return;
+    case MarkerSymbol::Plus: tb_change_cell(left + rcWhole.left, top + rcWhole.top, '+', to_rgb(marker->fore), to_rgb(marker->back)); return;
 /*
     case MarkerSymbol::BoxPlus:
     case MarkerSymbol::BoxPlusConnected: mvwaddstr(win, rcWhole.top, rcWhole.left, "⊞"); return;
@@ -895,31 +910,37 @@ public:
   void Initialise() override { }
   /** Disable drag and drop since it is not implemented. */
   void StartDrag() override {
+   inDragDrop = DragDrop::none;
+    SetDragPosition(SelectionPosition(Sci::invalidPosition));
   }
   /** Draws the vertical scroll bar. */
   void SetVerticalScrollPos() override {
     int maxy = reinterpret_cast<TermboxWin *>(wMain.GetID())->Height();
     int maxx = reinterpret_cast<TermboxWin *>(wMain.GetID())->Width();
+    int left = reinterpret_cast<TermboxWin *>(wMain.GetID())->left;
+    int top = reinterpret_cast<TermboxWin *>(wMain.GetID())->top;
     // Draw the gutter.
-    for (int i = 0; i < maxy; i++) tb_change_cell(maxx - 1, i, 0x2591, 0xffffff, 0x000000);
+    for (int i = 0; i < maxy; i++) tb_change_cell(left + maxx - 1, top + i, 0x2591, 0xffffff, 0x000000);
     // Draw the bar.
     scrollBarVPos = static_cast<float>(topLine) / (MaxScrollPos() + LinesOnScreen() - 1) * maxy;
     for (int i = scrollBarVPos; i < scrollBarVPos + scrollBarHeight; i++)
-      tb_change_cell(maxx - 1, i, ' ', 0x000000, 0xffffff);
+      tb_change_cell(left + maxx - 1, top + i, ' ', 0x000000, 0xffffff);
   }
   /** Draws the horizontal scroll bar. */
   void SetHorizontalScrollPos() override {
     if (!horizontalScrollBarVisible) return;
     int maxy = reinterpret_cast<TermboxWin *>(wMain.GetID())->Height();
     int maxx = reinterpret_cast<TermboxWin *>(wMain.GetID())->Width();
+    int left = reinterpret_cast<TermboxWin *>(wMain.GetID())->left;
+    int top = reinterpret_cast<TermboxWin *>(wMain.GetID())->top;
     // Draw the gutter.
 //    wattr_set(w, 0, term_color_pair(COLOR_WHITE, COLOR_BLACK), nullptr);
-    for (int i = 0; i < maxx; i++) tb_change_cell(i, maxy - 1, 0x2588, 0xffffff, 0x000000);
+    for (int i = 0; i < maxx; i++) tb_change_cell(left + i, top + maxy - 1, 0x2588, 0xffffff, 0x000000);
     // Draw the bar.
     scrollBarHPos = static_cast<float>(xOffset) / scrollWidth * maxx;
 //    wattr_set(w, 0, term_color_pair(COLOR_BLACK, COLOR_WHITE), nullptr);
     for (int i = scrollBarHPos; i < scrollBarHPos + scrollBarWidth; i++)
-      tb_change_cell(i, maxy - 1, ' ', 0x000000, 0xffffff);
+      tb_change_cell(left + i, top + maxy - 1, ' ', 0x000000, 0xffffff);
   }
   /**
    * Sets the height of the vertical scroll bar and width of the horizontal scroll bar.
@@ -940,9 +961,15 @@ public:
    * The primary and secondary X selections are unaffected.
    */
   void Copy() override {
+    if (!sel.Empty()) CopySelectionRange(&clipboard);
   }
   /** Pastes text from the internal clipboard, not from primary or secondary X selections. */
   void Paste() override {
+    if (clipboard.Empty()) return;
+    ClearSelection(multiPasteMode == MultiPaste::Each);
+    InsertPasteShape(clipboard.Data(), static_cast<int>(clipboard.Length()),
+      !clipboard.rectangular ? PasteShape::stream : PasteShape::rectangular);
+    EnsureCaretVisible();
   }
   /** Setting of the primary and/or secondary X selections is not supported. */
   void ClaimSelection() override {}
@@ -1102,6 +1129,20 @@ public:
     tb_clear();
     Refresh();
   }
+  /**
+   * Move Scintilla Window.
+   */
+  void Move(int new_x, int new_y) {
+    reinterpret_cast<TermboxWin *>(wMain.GetID())->left = new_x;
+    reinterpret_cast<TermboxWin *>(wMain.GetID())->top = new_y;
+    reinterpret_cast<TermboxWin *>(wMain.GetID())->right =
+    reinterpret_cast<TermboxWin *>(wMain.GetID())->left + width;
+    reinterpret_cast<TermboxWin *>(wMain.GetID())->bottom =
+    reinterpret_cast<TermboxWin *>(wMain.GetID())->top + height;
+    tb_clear();
+    Refresh();
+  }
+
 };
 
 // Link with C. Documentation in ScintillaCurses.h.
@@ -1120,6 +1161,9 @@ extern "C" {
   void scintilla_delete(void *sci) { delete reinterpret_cast<ScintillaTermbox *>(sci); }
   void scintilla_resize(void *sci, int width, int height) {
     reinterpret_cast<ScintillaTermbox *>(sci)->Resize(width, height);
+  }
+  void scintilla_move(void *sci, int new_x, int new_y) {
+    reinterpret_cast<ScintillaTermbox *>(sci)->Move(new_x, new_y);
   }
 }
 
