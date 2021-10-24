@@ -58,6 +58,10 @@ void scintilla_delete(void *sci);
  * Resize Scintilla window.
  */
 void scintilla_resize(void *sci, int width, int height);
+/**
+ * Move Scintilla window.
+ */
+void scintilla_move(void *sci, int new_x, int new_y);
 
 #define IMAGE_MAX 31
 
