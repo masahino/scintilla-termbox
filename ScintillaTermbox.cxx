@@ -237,7 +237,6 @@ public:
         tb_change_cell(left + x, top + y, ch, 0xffffff, to_rgb(fill.colour));
       }
     }
-    tb_present();
   }
   /**
    * Identical to `FillRectangle()` since suecial alignment to pixel boundaries is not needed.
