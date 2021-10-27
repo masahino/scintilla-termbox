@@ -75,8 +75,8 @@ struct TermboxWin {
   explicit TermboxWin(int left_, int top_, int right_, int bottom_) noexcept :
                 left(left_), top(top_), right(right_), bottom(bottom_) {
         }
-        int Width() const noexcept { return right - left; }
-        int Height() const noexcept { return bottom - top; }
+        int Width() const noexcept { return right - left + 1; }
+        int Height() const noexcept { return bottom - top + 1; }
 };
 
 // Font handling.
@@ -362,7 +362,7 @@ public:
   void DrawTextClipped(PRectangle rc, const Font *font_, XYPOSITION ybase, std::string_view text,
     ColourRGBA fore, ColourRGBA back) override {
     if (rc.left >= rc.right) // when drawing text blobs
-    rc.left -= 2, rc.right -= 2, rc.top -= 1, rc.bottom -= 1;
+      rc.left -= 2, rc.right -= 2, rc.top -= 1, rc.bottom -= 1;
     DrawTextNoClip(rc, font_, ybase, text, fore, back);
   }
   /**
@@ -507,7 +507,7 @@ public:
         rcWhole, fontForCharacter, rcWhole.bottom, std::string(&ch, 1), marker->fore, marker->back);
       return;
     }
-    fprintf(stderr, "DrawLineMarker\n");
+    fprintf(stderr, "DrawLineMarker %d\n", static_cast<int>(marker->markType));
   }
   /** Draws the text representation of a wrap marker. */
   void DrawWrapMarker(PRectangle rcPlace, bool isEndMarker, ColourRGBA wrapColour) {
@@ -594,7 +594,8 @@ void Window::SetPositionRelative(PRectangle rc, const Window *relativeTo) {
   }
   if (y < 0) y = begy; // align top
   // Update the location.
-  fprintf(stderr, "SetPositionRelative %d, %d\n", x, y);
+  reinterpret_cast<TermboxWin *>(wid)->left = x;
+  reinterpret_cast<TermboxWin *>(wid)->top = y;
 }
 /** Identical to `Window::GetPosition()`. */
 PRectangle Window::GetClientPosition() const { return GetPosition(); }
@@ -635,6 +636,7 @@ public:
    */
   void Create(Window &parent, int ctrlID, Point location_, int lineHeight_, bool unicodeMode_,
     Technology technology_) override {
+    wid = new TermboxWin(0, 0, 1, 1);
   }
   /**
    * Setting average char width is not implemented since all curses characters have a width of 1.
@@ -643,6 +645,7 @@ public:
   /** Sets the number of visible rows in the listbox. */
   void SetVisibleRows(int rows) override {
     height = rows;
+    reinterpret_cast<TermboxWin *>(wid)->bottom = reinterpret_cast<TermboxWin *>(wid)->top + height + 2 - 1;
   }
   /** Returns the number of visible rows in the listbox. */
   int GetVisibleRows() const override { return height; }
@@ -675,18 +678,54 @@ public:
     if (width < len + 1) {
       width = len + 1; // include type character len
     }
+    reinterpret_cast<TermboxWin *>(wid)->right = reinterpret_cast<TermboxWin *>(wid)->left + width + 2 - 1;
+    reinterpret_cast<TermboxWin *>(wid)->bottom = reinterpret_cast<TermboxWin *>(wid)->top + height + 2 - 1;
   }
   /** Returns the number of items in the listbox. */
   int Length() override { return list.size(); }
   /** Selects the given item in the listbox and repaints the listbox. */
   void Select(int n) override {
-//    box(w, '|', '-');
+    int fore = 0xffffff;
+    int back = 0x000000;
+    int attr = 0;
+    int left = reinterpret_cast<TermboxWin *>(wid)->left;
+    int right = reinterpret_cast<TermboxWin *>(wid)->right;
+    int top = reinterpret_cast<TermboxWin *>(wid)->top;
+    int bottom = reinterpret_cast<TermboxWin *>(wid)->bottom;
+    /* draw box */
+    tb_change_cell(left, top, 0x250C, fore, back);
+    for (int x = left + 1; x < right; x++) {
+      tb_change_cell(x, top, 0x2500, fore, back);
+    }
+    tb_change_cell(right, top, 0x2510, fore, back);
+    for (int y = top + 1; y < bottom; y++) {
+      tb_change_cell(left, y, 0x2502, fore, back);
+      for (int x = left + 1; x < right; x++) {
+        tb_change_cell(x, y, ' ', fore, back);
+      }
+      tb_change_cell(right, y, 0x2502, fore, back);
+    }
+    tb_change_cell(left, bottom, 0x2514, fore, back);
+    for (int x = left + 1; x < right; x++) {
+      tb_change_cell(x, bottom, 0x2500, fore, back);
+    }
+    tb_change_cell(right, bottom, 0x2518, fore, back);
+
     int len = static_cast<int>(list.size());
     int s = n - height / 2;
     if (s + height > len) s = len - height;
     if (s < 0) s = 0;
     for (int i = s; i < s + height && i < len; i++) {
+      if (i == n) {
+        attr = TB_REVERSE;
+      } else {
+        attr = 0;
+      }
+      for (int j = 0; j < list.at(i).size(); j++) {
+        tb_change_cell(left + 1 + j, top + i - s + 1, list.at(i).c_str()[j], fore | attr, back);
+      }
     }
+    tb_present();
     selection = n;
   }
   /** Returns the currently selected item in the listbox. */

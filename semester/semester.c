@@ -93,6 +93,8 @@ while (tb_poll_event(&ev))
         case TB_KEY_CTRL_B:
           scintilla_move(sci, 10, 5);
           break;
+        case TB_KEY_CTRL_C:
+          SSM(SCI_AUTOCSHOW, 0, "abc opq xyz 01234567890 xxx xxx xxx xxx xxx");
         default:
           break;
       }
