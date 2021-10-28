@@ -723,7 +723,8 @@ public:
       } else {
         attr = 0;
       }
-      for (int j = 0; j < list.at(i).size(); j++) {
+      tb_change_cell(left + 1, top + 1, ' ', fore, back);
+      for (int j = 1; j < list.at(i).size(); j++) {
         tb_change_cell(left + 1 + j, top + i - s + 1, list.at(i).c_str()[j], fore | attr, back);
       }
     }
