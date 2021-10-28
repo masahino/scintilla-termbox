@@ -1,7 +1,7 @@
 CC = gcc
 CXX = g++
 CFLAGS = -g -DTERMBOX -DSCI_LEXER -Wall -I../../include -I../../src -I../../../lexilla/include \
-  -I../../../lexilla/lexlib -I ../
+  -I../../../lexilla/lexlib -I ../ -I../termbox_next/src
 CXXFLAGS = $(CFLAGS)
 
 scintilla = ../../bin/scintilla.a ../../../lexilla/bin/liblexilla.a

@@ -95,6 +95,10 @@ while (tb_poll_event(&ev))
           break;
         case TB_KEY_CTRL_C:
           SSM(SCI_AUTOCSHOW, 0, "abc opq xyz 01234567890 xxx xxx xxx xxx xxx");
+          break;
+        case TB_KEY_CTRL_D:
+          SSM(SCI_AUTOCSETMAXHEIGHT, 16, 0);
+          break;
         default:
           break;
       }

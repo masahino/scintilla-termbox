@@ -645,7 +645,9 @@ public:
   /** Sets the number of visible rows in the listbox. */
   void SetVisibleRows(int rows) override {
     height = rows;
-    reinterpret_cast<TermboxWin *>(wid)->bottom = reinterpret_cast<TermboxWin *>(wid)->top + height + 2 - 1;
+    if (wid) {
+      reinterpret_cast<TermboxWin *>(wid)->bottom = reinterpret_cast<TermboxWin *>(wid)->top + height + 2 - 1;
+    }
   }
   /** Returns the number of visible rows in the listbox. */
   int GetVisibleRows() const override { return height; }
@@ -1161,9 +1163,9 @@ public:
    */
   void Resize(int width, int height) {
     reinterpret_cast<TermboxWin *>(wMain.GetID())->right =
-    reinterpret_cast<TermboxWin *>(wMain.GetID())->left + width;
+    reinterpret_cast<TermboxWin *>(wMain.GetID())->left + width - 1;
     reinterpret_cast<TermboxWin *>(wMain.GetID())->bottom =
-    reinterpret_cast<TermboxWin *>(wMain.GetID())->top + height;
+    reinterpret_cast<TermboxWin *>(wMain.GetID())->top + height - 1;
     tb_clear();
     Refresh();
   }
