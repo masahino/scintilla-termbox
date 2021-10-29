@@ -574,7 +574,8 @@ PRectangle Window::GetPosition() const {
 void Window::SetPositionRelative(PRectangle rc, const Window *relativeTo) {
   int begx = 0, begy = 0, x = 0, y = 0;
   // Determine the relative position.
-//  getbegyx(_WINDOW(relativeTo->GetID()), begy, begx);
+  begx = reinterpret_cast<TermboxWin *>(relativeTo->GetID())->left;
+  begy = reinterpret_cast<TermboxWin *>(relativeTo->GetID())->top;
   x = begx + rc.left;
   if (x < begx) x = begx;
   y = begy + rc.top;
