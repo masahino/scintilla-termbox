@@ -77,6 +77,12 @@ struct TermboxWin {
         }
         int Width() const noexcept { return right - left + 1; }
         int Height() const noexcept { return bottom - top + 1; }
+        void Move(int newx, int newy) noexcept {
+          right += newx - left;
+          bottom += newy - top;
+          left = newx;
+          top = newy;
+        }
 };
 
 // Font handling.
@@ -583,8 +589,8 @@ void Window::SetPositionRelative(PRectangle rc, const Window *relativeTo) {
   // Correct to fit the parent if necessary.
   int sizex = rc.right - rc.left;
   int sizey = rc.bottom - rc.top;
-  int screen_width = tb_width();
-  int screen_height = tb_height();
+  int screen_width = reinterpret_cast<TermboxWin *>(relativeTo->GetID())->Width();
+  int screen_height = reinterpret_cast<TermboxWin *>(relativeTo->GetID())->Height();
   if (sizex > screen_width)
     x = begx; // align left
   else if (x + sizex > begx + screen_width)
@@ -595,8 +601,8 @@ void Window::SetPositionRelative(PRectangle rc, const Window *relativeTo) {
   }
   if (y < 0) y = begy; // align top
   // Update the location.
-  reinterpret_cast<TermboxWin *>(wid)->left = x;
-  reinterpret_cast<TermboxWin *>(wid)->top = y;
+  reinterpret_cast<TermboxWin *>(wid)->Move(x, y);
+  fprintf(stderr, "SetPositionRelative %d, %d\n", x, y);
 }
 /** Identical to `Window::GetPosition()`. */
 PRectangle Window::GetClientPosition() const { return GetPosition(); }
@@ -1175,12 +1181,7 @@ public:
    * Move Scintilla Window.
    */
   void Move(int new_x, int new_y) {
-    reinterpret_cast<TermboxWin *>(wMain.GetID())->left = new_x;
-    reinterpret_cast<TermboxWin *>(wMain.GetID())->top = new_y;
-    reinterpret_cast<TermboxWin *>(wMain.GetID())->right =
-    reinterpret_cast<TermboxWin *>(wMain.GetID())->left + width;
-    reinterpret_cast<TermboxWin *>(wMain.GetID())->bottom =
-    reinterpret_cast<TermboxWin *>(wMain.GetID())->top + height;
+    reinterpret_cast<TermboxWin *>(wMain.GetID())->Move(new_x, new_y);
     tb_clear();
     Refresh();
   }
