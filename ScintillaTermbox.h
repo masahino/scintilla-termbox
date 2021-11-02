@@ -41,6 +41,23 @@ sptr_t scintilla_send_message(void *sci, unsigned int iMessage, uptr_t wParam, s
  */
 void scintilla_send_key(void *sci, int key, bool shift, bool ctrl, bool alt);
 /**
+ * Sends the specified mouse event to the given Scintilla window for processing.
+ * Curses must have been initialized prior to calling this function.
+ * @param sci The Scintilla window returned by `scintilla_new()`.
+ * @param event The mouse event (`SCM_CLICK`, `SCM_DRAG`, or `SCM_RELEASE`).
+ * @param time The time in milliseconds of the mouse event. This is only needed if double and
+ *   triple clicks need to be detected.
+ * @param button The button number pressed, or `0` if none.
+ * @param y The absolute y coordinate of the mouse event.
+ * @param x The absolute x coordinate of the mouse event.
+ * @param shift Flag indicating whether or not the shift modifier key is pressed.
+ * @param ctrl Flag indicating whether or not the control modifier key is pressed.
+ * @param alt Flag indicating whether or not the alt modifier key is pressed.
+ * @return whether or not Scintilla handled the mouse event
+ */
+bool scintilla_send_mouse(void *sci, int event, unsigned int time, int button, int y, int x,
+  bool shift, bool ctrl, bool alt);
+/**
  * Refreshes the Scintilla window on the physical screen.
  * This should be done along with the normal curses `refresh()`, as the physical screen is
  * updated when calling this function.
@@ -64,6 +81,10 @@ void scintilla_resize(void *sci, int width, int height);
 void scintilla_move(void *sci, int new_x, int new_y);
 
 #define IMAGE_MAX 31
+
+#define SCM_PRESS 1
+#define SCM_DRAG 2
+#define SCM_RELEASE 3
 
 #ifdef __cplusplus
 }

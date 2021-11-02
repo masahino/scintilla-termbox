@@ -1,4 +1,5 @@
 #include <locale.h>
+#include <sys/time.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,6 +24,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "tb_init() failed with error code %d\n", ret);
     return 1;
   }
+  tb_select_input_mode(1 | 4);
   tb_select_output_mode(5);
   Scintilla *sci = scintilla_new(scnotification, NULL);
   SSM(SCI_STYLESETFORE, STYLE_DEFAULT, 0xd8d8d8);
@@ -91,7 +93,7 @@ while (tb_poll_event(&ev))
           scintilla_resize(sci, 40, 20);
           break;
         case TB_KEY_CTRL_B:
-          scintilla_move(sci, 10, 5);
+          scintilla_move(sci, 10, 19);
           break;
         case TB_KEY_CTRL_C:
           SSM(SCI_AUTOCSHOW, 0, "abc opq xyz 01234567890 xxx xxx xxx xxx xxx");
@@ -102,15 +104,30 @@ while (tb_poll_event(&ev))
         default:
           break;
       }
+      if (c != 0) {
+        scintilla_send_key(sci, c, 0, 0, 0);
+        scintilla_refresh(sci);
+      }
       break;
 
       case TB_EVENT_RESIZE:
-
       break;
-    }
-    if (c != 0) {
-      scintilla_send_key(sci, c, 0, 0, 0);
-      scintilla_refresh(sci);
+      case TB_EVENT_MOUSE:
+      {
+        struct timeval time = {0, 0};
+        gettimeofday(&time, NULL);
+        int event = 1;
+        int millis = time.tv_sec * 1000 + time.tv_usec / 1000;
+        fprintf(stderr, "send_mouse mod = %d, key = %x, x = %d, y = %d\n", ev.mod, ev.key, ev.x, ev.y);
+        if (ev.mod == 2) {
+          event = 2;
+        } else if (ev.key == TB_KEY_MOUSE_RELEASE) {
+          event = 3;
+        }
+        scintilla_send_mouse(sci, event, millis, 1, ev.y, ev.x, false, false, false);
+        scintilla_refresh(sci);
+      }
+     break;
     }
   }
 

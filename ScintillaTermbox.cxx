@@ -1111,6 +1111,13 @@ public:
     return 0;
   }
   /**
+   * Returns the curses `WINDOW` associated with this Scintilla instance.
+   * If the `WINDOW` has not been created yet, create it now.
+   */
+  TermboxWin *GetWINDOW() {
+    return reinterpret_cast<TermboxWin *>(wMain.GetID());
+  }
+  /**
    * Updates the cursor position, even if it's not visible, as the container may have a use for it.
    */
   void UpdateCursor() {
@@ -1121,7 +1128,7 @@ public:
       pos = WndProc(Message::PositionBefore, pos, 0); // draw inside selection
     int y = WndProc(Message::PointYFromPosition, 0, pos);
     int x = WndProc(Message::PointXFromPosition, 0, pos);
-//    fprintf(stderr, "update cursor pos = %d, %d, %d\n", pos, x, y);
+    fprintf(stderr, "update cursor pos = %d, %d, %d\n", pos, x, y);
 //    tb_set_cursor(17, 0);
 //    tb_present();
 //    wmove(GetWINDOW(), y, x);
@@ -1167,6 +1174,142 @@ public:
     KeyDownWithModifiers(static_cast<Keys>(key), ModifierFlags(shift, ctrl, alt), nullptr);
   }
   /**
+   * Handles a mouse button press.
+   * @param button The button number pressed, or `0` if none.
+   * @param time The time in milliseconds of the mouse event.
+   * @param y The y coordinate of the mouse event relative to this window.
+   * @param x The x coordinate of the mouse event relative to this window.
+   * @param shift Flag indicating whether or not the shift modifier key is pressed.
+   * @param ctrl Flag indicating whether or not the control modifier key is pressed.
+   * @param alt Flag indicating whether or not the alt modifier key is pressed.
+   * @return whether or not the mouse event was handled
+   */
+  bool MousePress(int button, unsigned int time, int y, int x, bool shift, bool ctrl, bool alt) {
+    if (ac.Active() && (button == 1 || button == 4 || button == 5)) {
+      // Select an autocompletion list item if possible or scroll the list.
+      TermboxWin *w = reinterpret_cast<TermboxWin *>(ac.lb->GetID()), *parent = GetWINDOW();
+      int begy = w->top - parent->top; // y is relative to the view
+      int begx = w->left - parent->left; // x is relative to the view
+      int maxy = w->bottom - 1, maxx = w->right - 1; // ignore border
+      int ry = y - begy, rx = x - begx; // relative to list box
+      if (ry > 0 && ry < maxy && rx > 0 && rx < maxx) {
+        if (button == 1) {
+          // Select a list item.
+          // The currently selected item is normally displayed in the middle.
+          int middle = ac.lb->GetVisibleRows() / 2;
+          int n = ac.lb->GetSelection(), ny = middle;
+          if (n < middle)
+            ny = n; // the currently selected item is near the beginning
+          else if (n >= ac.lb->Length() - middle)
+            ny = (n - 1) % ac.lb->GetVisibleRows(); // it's near the end
+          // Compute the index of the item to select.
+          int offset = ry - ny - 1; // -1 ignores list box border
+          if (offset == 0 && time - autoCompleteLastClickTime < Platform::DoubleClickTime()) {
+            ListBoxImpl *listbox = reinterpret_cast<ListBoxImpl *>(ac.lb.get());
+            if (listbox->delegate) {
+              ListBoxEvent event(ListBoxEvent::EventType::doubleClick);
+              listbox->delegate->ListNotify(&event);
+            }
+          } else
+            ac.lb->Select(n + offset);
+          autoCompleteLastClickTime = time;
+        } else {
+          // Scroll the list.
+          int n = ac.lb->GetSelection();
+          if (button == 4 && n > 0)
+            ac.lb->Select(n - 1);
+          else if (button == 5 && n < ac.lb->Length() - 1)
+            ac.lb->Select(n + 1);
+        }
+        return true;
+      } else if (ry == 0 || ry == maxy || rx == 0 || rx == maxx)
+        return true; // ignore border click
+    } else if (ct.inCallTipMode && button == 1) {
+      // Send the click to the CallTip.
+      TermboxWin *w = reinterpret_cast<TermboxWin *>(ct.wCallTip.GetID()), *parent = GetWINDOW();
+      int begy = w->top - parent->top; // y is relative to the view
+      int begx = w->left - parent->left; // x is relative to the view
+      int maxy = w->bottom - 1, maxx = w->right - 1; // ignore border
+      int ry = y - begy, rx = x - begx; // relative to list box
+      if (ry >= 0 && ry <= maxy && rx >= 0 && rx <= maxx) {
+        ct.MouseClick(Point(rx, ry));
+        return (CallTipClick(), true);
+      }
+    }
+
+    if (button == 1) {
+      if (verticalScrollBarVisible && x == GetWINDOW()->right - 1) {
+        // Scroll the vertical scrollbar.
+        if (y < scrollBarVPos)
+          return (ScrollTo(topLine - LinesOnScreen()), true);
+        else if (y >= scrollBarVPos + scrollBarHeight)
+          return (ScrollTo(topLine + LinesOnScreen()), true);
+        else
+          draggingVScrollBar = true, dragOffset = y - scrollBarVPos;
+      } else if (horizontalScrollBarVisible && y == GetWINDOW()->bottom - 1) {
+        // Scroll the horizontal scroll bar.
+        if (x < scrollBarHPos)
+          return (HorizontalScrollTo(xOffset - GetWINDOW()->right / 2), true);
+        else if (x >= scrollBarHPos + scrollBarWidth)
+          return (HorizontalScrollTo(xOffset + GetWINDOW()->right / 2), true);
+        else
+          draggingHScrollBar = true, dragOffset = x - scrollBarHPos;
+      } else {
+        // Have Scintilla handle the click.
+        ButtonDownWithModifiers(Point(x, y), time, ModifierFlags(shift, ctrl, alt));
+        return true;
+      }
+    } else if (button == 4 || button == 5) {
+      // Scroll the view.
+      int lines = std::max(GetWINDOW()->bottom / 4, 1);
+      if (button == 4) lines *= -1;
+      return (ScrollTo(topLine + lines), true);
+    }
+    return false;
+  }
+  /**
+   * Sends a mouse move event to Scintilla, returning whether or not Scintilla handled the
+   * mouse event.
+   * @param y The y coordinate of the mouse event relative to this window.
+   * @param x The x coordinate of the mouse event relative to this window.
+   * @param shift Flag indicating whether or not the shift modifier key is pressed.
+   * @param ctrl Flag indicating whether or not the control modifier key is pressed.
+   * @param alt Flag indicating whether or not the alt modifier key is pressed.
+   * @return whether or not Scintilla handled the mouse event
+   */
+  bool MouseMove(int y, int x, bool shift, bool ctrl, bool alt) {
+    if (!draggingVScrollBar && !draggingHScrollBar) {
+      ButtonMoveWithModifiers(Point(x, y), 0, ModifierFlags(shift, ctrl, alt));
+    } else if (draggingVScrollBar) {
+      int maxy = GetWINDOW()->bottom - scrollBarHeight, pos = y - dragOffset;
+      if (pos >= 0 && pos <= maxy) ScrollTo(pos * MaxScrollPos() / maxy);
+      return true;
+    } else if (draggingHScrollBar) {
+      int maxx = GetWINDOW()->right - scrollBarWidth, pos = x - dragOffset;
+      if (pos >= 0 && pos <= maxx)
+        HorizontalScrollTo(pos * (scrollWidth - maxx - scrollBarWidth) / maxx);
+      return true;
+    }
+    return HaveMouseCapture();
+  }
+  /**
+   * Sends a mouse release event to Scintilla.
+   * @param time The time in milliseconds of the mouse event.
+   * @param y The y coordinate of the mouse event relative to this window.
+   * @param x The x coordinate of the mouse event relative to this window.
+   * @param ctrl Flag indicating whether or not the control modifier key is pressed.
+   */
+  void MouseRelease(int time, int y, int x, int ctrl) {
+    if (draggingVScrollBar || draggingHScrollBar)
+      draggingVScrollBar = false, draggingHScrollBar = false;
+    else if (HaveMouseCapture()) {
+      ButtonUpWithModifiers(Point(x, y), time, ModifierFlags(ctrl, false, false));
+      // TODO: ListBoxEvent event(ListBoxEvent::EventType::selectionChange);
+      // TODO: listbox->delegate->ListNotify(&event);
+    }
+  }
+
+  /**
    * Resize Scintilla Window.
    */
   void Resize(int width, int height) {
@@ -1200,6 +1343,25 @@ extern "C" {
   void scintilla_send_key(void *sci, int key, bool shift, bool ctrl, bool alt) {
     reinterpret_cast<ScintillaTermbox *>(sci)->KeyPress(key, shift, ctrl, alt);
   }
+bool scintilla_send_mouse(void *sci, int event, unsigned int time, int button, int y, int x,
+  bool shift, bool ctrl, bool alt) {
+  ScintillaTermbox *scitermbox = reinterpret_cast<ScintillaTermbox *>(sci);
+  TermboxWin *w = scitermbox->GetWINDOW();
+  int begy = w->top, begx = w->left;
+  int maxy = w->bottom, maxx = w->right;
+  // Ignore most events outside the window.
+  if ((x < begx || x > begx + maxx - 1 || y < begy || y > begy + maxy - 1) && button != 4 &&
+    button != 5 && event != SCM_DRAG)
+    return false;
+  y = y - begy, x = x - begx;
+  if (event == SCM_PRESS)
+    return scitermbox->MousePress(button, time, y, x, shift, ctrl, alt);
+  else if (event == SCM_DRAG)
+    return scitermbox->MouseMove(y, x, shift, ctrl, alt);
+  else if (event == SCM_RELEASE)
+    return (scitermbox->MouseRelease(time, y, x, ctrl), true);
+  return false;
+}
   void scintilla_refresh(void *sci) { reinterpret_cast<ScintillaTermbox *>(sci)->Refresh(); }
   void scintilla_delete(void *sci) { delete reinterpret_cast<ScintillaTermbox *>(sci); }
   void scintilla_resize(void *sci, int width, int height) {
