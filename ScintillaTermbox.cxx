@@ -114,8 +114,6 @@ std::shared_ptr<Font> Font::Allocate(const FontParameters &fp) {
   return std::make_shared<FontImpl>(fp);
 }
 
-static ColourRGBA BLACK(0, 0, 0);
-
 // Surface handling.
 
 /**
@@ -253,7 +251,7 @@ public:
    * portion with black.
    */
   void FillRectangle(PRectangle rc, Surface &surfacePattern) override {
-    FillRectangle(rc, BLACK); }
+    FillRectangle(rc, ColourRGBA(0, 0, 0)); }
   /**
    * Scintilla will never call this method.
    * Line markers that Scintilla would normally draw as rounded rectangles are handled in
@@ -477,6 +475,9 @@ public:
     case MarkerSymbol::RoundRect: mvwaddstr(win, rcWhole.top, rcWhole.left, "■"); return;
     case MarkerSymbol::Arrow: mvwaddstr(win, rcWhole.top, rcWhole.left, "►"); return;
     case MarkerSymbol::ShortArrow: mvwaddstr(win, rcWhole.top, rcWhole.left, "→"); return;
+*/
+    case MarkerSymbol::Empty: tb_change_cell(left + rcWhole.left, top + rcWhole.top, ' ', to_rgb(marker->fore), to_rgb(marker->back)); return;
+/*
     case MarkerSymbol::ArrowDown: mvwaddstr(win, rcWhole.top, rcWhole.left, "▼"); return;
 */
     case MarkerSymbol::Minus: tb_change_cell(left + rcWhole.left, top + rcWhole.top, '-', to_rgb(marker->fore), to_rgb(marker->back)); return;
