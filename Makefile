@@ -2,7 +2,7 @@
 
 .SUFFIXES: .cxx .c .o .h .a
 
-DEBUG = 1
+#DEBUG = 1
 AR = ar
 CC = gcc
 CXX = g++
