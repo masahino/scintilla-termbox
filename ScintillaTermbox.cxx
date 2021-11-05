@@ -710,7 +710,7 @@ public:
     int s = n - height / 2;
     if (s + height > len) s = len - height;
     if (s < 0) s = 0;
-    for (int i = s; i < s + height && i < len; i++) {
+    for (int i = s; i < s + height; i++) {
       if (i == n) {
         fore = 0x383838;
         back = 0x7cafc2;
@@ -718,12 +718,18 @@ public:
         fore = 0xd8d8d8;
         back = 0x383838;
       }
-      tb_change_cell(left, top + i - s, ' ', fore, back);
-      for (int j = 1; j < list.at(i).size(); j++) {
-        tb_change_cell(left + j, top + i - s, list.at(i).c_str()[j], fore, back);
-      }
-      for (int j = list.at(i).size(); j < right; j++) {
-        tb_change_cell(left + j, top + i - s, ' ', fore, back);
+      if (i < len) {
+        tb_change_cell(left, top + i - s, ' ', fore, back);
+        for (int j = 1; j < list.at(i).size(); j++) {
+          tb_change_cell(left + j, top + i - s, list.at(i).c_str()[j], fore, back);
+        }
+        for (int j = list.at(i).size(); j < right; j++) {
+          tb_change_cell(left + j, top + i - s, ' ', fore, back);
+        }
+      } else {
+        for (int j = 0; j < right; j++) {
+          tb_change_cell(left + j, top + i - s, ' ', fore, back);
+        }
       }
     }
     tb_present();
