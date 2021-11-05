@@ -214,7 +214,8 @@ public:
    * appropriately instead of clearing the given portion of the screen.
    */
   void FillRectangle(PRectangle rc, Fill fill) override {
-    //fprintf(stderr, "FillRectangle (%lf, %lf, %lf, %lf) %x\n", rc.left, rc.top, rc.right, rc.bottom, fill.colour.OpaqueRGB());
+    if (!win) return;
+//    fprintf(stderr, "FillRectangle (%lf, %lf, %lf, %lf) %x\n", rc.left, rc.top, rc.right, rc.bottom, fill.colour.OpaqueRGB());
     //wattr_set(win, 0, term_color_pair(COLOR_WHITE, fill.colour), nullptr);
     char ch = ' ';
     if (fabs(rc.left - static_cast<int>(rc.left)) > 0.1) {
@@ -251,7 +252,9 @@ public:
    * portion with black.
    */
   void FillRectangle(PRectangle rc, Surface &surfacePattern) override {
-    FillRectangle(rc, ColourRGBA(0, 0, 0)); }
+    fprintf(stderr, "FillRctangle with SurfacePattern \n");
+    FillRectangle(rc, ColourRGBA(0, 0, 0));
+  }
   /**
    * Scintilla will never call this method.
    * Line markers that Scintilla would normally draw as rounded rectangles are handled in
@@ -488,9 +491,9 @@ public:
     case MarkerSymbol::CircleMinusConnected: mvwaddstr(win, rcWhole.top, rcWhole.left, "⊖"); return;
 */
     case MarkerSymbol::Plus: tb_change_cell(left + rcWhole.left, top + rcWhole.top, '+', to_rgb(marker->fore), to_rgb(marker->back)); return;
-/*
     case MarkerSymbol::BoxPlus:
-    case MarkerSymbol::BoxPlusConnected: mvwaddstr(win, rcWhole.top, rcWhole.left, "⊞"); return;
+    case MarkerSymbol::BoxPlusConnected: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x229E, to_rgb(marker->fore), to_rgb(marker->back)); return;
+/*
     case MarkerSymbol::CirclePlus:
     case MarkerSymbol::CirclePlusConnected: mvwaddstr(win, rcWhole.top, rcWhole.left, "⊕"); return;
     case MarkerSymbol::VLine: mvwaddch(win, rcWhole.top, rcWhole.left, ACS_VLINE); return;
@@ -500,7 +503,9 @@ public:
     case MarkerSymbol::TCornerCurve: mvwaddch(win, rcWhole.top, rcWhole.left, ACS_LTEE); return;
     case MarkerSymbol::DotDotDot: mvwaddstr(win, rcWhole.top, rcWhole.left, "…"); return;
     case MarkerSymbol::Arrows: mvwaddstr(win, rcWhole.top, rcWhole.left, "»"); return;
+*/
     case MarkerSymbol::FullRect: FillRectangle(rcWhole, marker->back); return;
+/*
     case MarkerSymbol::LeftRect: mvwaddstr(win, rcWhole.top, rcWhole.left, "▌"); return;
     case MarkerSymbol::Bookmark: mvwaddstr(win, rcWhole.top, rcWhole.left, "Σ"); return;
 */
@@ -654,14 +659,14 @@ public:
   void SetVisibleRows(int rows) override {
     height = rows;
     if (wid) {
-      reinterpret_cast<TermboxWin *>(wid)->bottom = reinterpret_cast<TermboxWin *>(wid)->top + height + 2 - 1;
+      reinterpret_cast<TermboxWin *>(wid)->bottom = reinterpret_cast<TermboxWin *>(wid)->top + height - 1;
     }
   }
   /** Returns the number of visible rows in the listbox. */
   int GetVisibleRows() const override { return height; }
   /** Returns the desired size of the listbox. */
   PRectangle GetDesiredRect() override {
-    return PRectangle(0, 0, width + 2, height + 2); // add border widths
+    return PRectangle(0, 0, width, height); // add border widths
   }
   /**
    * Returns the left-offset of the ListBox with respect to the caret.
@@ -688,38 +693,18 @@ public:
     if (width < len + 1) {
       width = len + 1; // include type character len
     }
-    reinterpret_cast<TermboxWin *>(wid)->right = reinterpret_cast<TermboxWin *>(wid)->left + width + 2 - 1;
-    reinterpret_cast<TermboxWin *>(wid)->bottom = reinterpret_cast<TermboxWin *>(wid)->top + height + 2 - 1;
+    reinterpret_cast<TermboxWin *>(wid)->right = reinterpret_cast<TermboxWin *>(wid)->left + width - 1;
+    reinterpret_cast<TermboxWin *>(wid)->bottom = reinterpret_cast<TermboxWin *>(wid)->top + height - 1;
   }
   /** Returns the number of items in the listbox. */
   int Length() override { return list.size(); }
   /** Selects the given item in the listbox and repaints the listbox. */
   void Select(int n) override {
-    int fore = 0xffffff;
-    int back = 0x000000;
-    int attr = 0;
+    int fore = 0;
+    int back = 0;
     int left = reinterpret_cast<TermboxWin *>(wid)->left;
     int right = reinterpret_cast<TermboxWin *>(wid)->right;
     int top = reinterpret_cast<TermboxWin *>(wid)->top;
-    int bottom = reinterpret_cast<TermboxWin *>(wid)->bottom;
-    /* draw box */
-    tb_change_cell(left, top, 0x250C, fore, back);
-    for (int x = left + 1; x < right; x++) {
-      tb_change_cell(x, top, 0x2500, fore, back);
-    }
-    tb_change_cell(right, top, 0x2510, fore, back);
-    for (int y = top + 1; y < bottom; y++) {
-      tb_change_cell(left, y, 0x2502, fore, back);
-      for (int x = left + 1; x < right; x++) {
-        tb_change_cell(x, y, ' ', fore, back);
-      }
-      tb_change_cell(right, y, 0x2502, fore, back);
-    }
-    tb_change_cell(left, bottom, 0x2514, fore, back);
-    for (int x = left + 1; x < right; x++) {
-      tb_change_cell(x, bottom, 0x2500, fore, back);
-    }
-    tb_change_cell(right, bottom, 0x2518, fore, back);
 
     int len = static_cast<int>(list.size());
     int s = n - height / 2;
@@ -727,13 +712,18 @@ public:
     if (s < 0) s = 0;
     for (int i = s; i < s + height && i < len; i++) {
       if (i == n) {
-        attr = TB_REVERSE;
+        fore = 0x383838;
+        back = 0x7cafc2;
       } else {
-        attr = 0;
+        fore = 0xd8d8d8;
+        back = 0x383838;
       }
-      tb_change_cell(left + 1, top + 1, ' ', fore, back);
+      tb_change_cell(left, top + i - s, ' ', fore, back);
       for (int j = 1; j < list.at(i).size(); j++) {
-        tb_change_cell(left + 1 + j, top + i - s + 1, list.at(i).c_str()[j], fore | attr, back);
+        tb_change_cell(left + j, top + i - s, list.at(i).c_str()[j], fore, back);
+      }
+      for (int j = list.at(i).size(); j < right; j++) {
+        tb_change_cell(left + j, top + i - s, ' ', fore, back);
       }
     }
     tb_present();
