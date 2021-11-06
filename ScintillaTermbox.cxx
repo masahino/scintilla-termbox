@@ -306,7 +306,7 @@ public:
    */
   void DrawTextNoClip(PRectangle rc, const Font *font_, XYPOSITION ybase, std::string_view text,
     ColourRGBA fore, ColourRGBA back) override {
-    
+
     uint32_t attrs = dynamic_cast<const FontImpl *>(font_)->attrs;
     if (rc.left < clip.left) {
       // Do not overwrite margin text.
@@ -382,11 +382,12 @@ public:
     int y = reinterpret_cast<TermboxWin *>(win)->top + static_cast<int>(rc.top);
     int x = reinterpret_cast<TermboxWin *>(win)->left + static_cast<int>(rc.left);
     struct tb_cell *buffer = tb_cell_buffer();
+    int tb_color = buffer[y * reinterpret_cast<TermboxWin *>(win)->Width() + x].bg;
 //    attr_t attrs = mvwinch(win, static_cast<int>(rc.top), static_cast<int>(rc.left));
 //    short pair = PAIR_NUMBER(attrs), unused, back = COLOR_BLACK;
 //    if (pair > 0 && !isCallTip) pair_content(pair, &unused, &back);
-//    fprintf(stderr, "%x\n", this->vs.styles[0].back.OpaqueRGB());
-    DrawTextNoClip(rc, font_, ybase, text, fore, ColourRGBA(buffer[y * tb_width() + x].bg));
+    DrawTextNoClip(rc, font_, ybase, text, fore,
+    ColourRGBA(tb_color >> 16, (tb_color & 0x00ff00) >> 8, tb_color & 0x0000ff));
   }
   /**
    * Measures the width of characters in the given string and writes them to the given position
