@@ -118,8 +118,7 @@ while (tb_poll_event(&ev))
         gettimeofday(&time, NULL);
         int event = 1;
         int millis = time.tv_sec * 1000 + time.tv_usec / 1000;
-        fprintf(stderr, "send_mouse mod = %d, key = %x, x = %d, y = %d\n", ev.mod, ev.key, ev.x, ev.y);
-        if (ev.mod == 2) {
+         if (ev.mod == 2) {
           event = 2;
         } else if (ev.key == TB_KEY_MOUSE_RELEASE) {
           event = 3;

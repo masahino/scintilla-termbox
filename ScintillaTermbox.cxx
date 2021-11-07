@@ -195,7 +195,9 @@ public:
    * `DrawLineMarker()`.
    */
   void Polygon(const Point *pts, size_t npts, FillStroke fillStroke) override {
+#ifdef DEBUG
     fprintf(stderr, "Polygon\n");
+#endif
   }
   /**
    * Scintilla will never call this method.
@@ -219,7 +221,9 @@ public:
     //wattr_set(win, 0, term_color_pair(COLOR_WHITE, fill.colour), nullptr);
     char ch = ' ';
     if (fabs(rc.left - static_cast<int>(rc.left)) > 0.1) {
+#ifdef DEBUG
       fprintf(stderr, "fractional\n");
+#endif
       // If rc.left is a fractional value (e.g. 4.5) then whitespace dots are being drawn. Draw
       // them appropriately.
       // TODO: set color to vs.whitespaceColours.fore and back.
@@ -252,7 +256,9 @@ public:
    * portion with black.
    */
   void FillRectangle(PRectangle rc, Surface &surfacePattern) override {
+#ifdef DEBUG
     fprintf(stderr, "FillRctangle with SurfacePattern \n");
+#endif
     FillRectangle(rc, ColourRGBA(0, 0, 0));
   }
   /**
@@ -269,7 +275,9 @@ public:
    * text blobs, and translucent line states and selections.
    */
   void AlphaRectangle(PRectangle rc, XYPOSITION cornerSize, FillStroke fillStroke) override {
+#ifdef DEBUG
     fprintf(stderr, "AlphaRectangle\n");
+#endif
   }
   /** Drawing gradients is not implemented. */
   void GradientRectangle(
@@ -291,7 +299,9 @@ public:
    * assume the former.
    */
   void Copy(PRectangle rc, Point from, Surface &surfaceSource) override {
+#ifdef DEBUG
     fprintf(stderr, "Copy\n");
+#endif
   }
 
   /** Bidirectional input is not implemented. */
@@ -306,7 +316,7 @@ public:
    */
   void DrawTextNoClip(PRectangle rc, const Font *font_, XYPOSITION ybase, std::string_view text,
     ColourRGBA fore, ColourRGBA back) override {
-
+    
     uint32_t attrs = dynamic_cast<const FontImpl *>(font_)->attrs;
     if (rc.left < clip.left) {
       // Do not overwrite margin text.
@@ -382,12 +392,11 @@ public:
     int y = reinterpret_cast<TermboxWin *>(win)->top + static_cast<int>(rc.top);
     int x = reinterpret_cast<TermboxWin *>(win)->left + static_cast<int>(rc.left);
     struct tb_cell *buffer = tb_cell_buffer();
-    int tb_color = buffer[y * reinterpret_cast<TermboxWin *>(win)->Width() + x].bg;
 //    attr_t attrs = mvwinch(win, static_cast<int>(rc.top), static_cast<int>(rc.left));
 //    short pair = PAIR_NUMBER(attrs), unused, back = COLOR_BLACK;
 //    if (pair > 0 && !isCallTip) pair_content(pair, &unused, &back);
-    DrawTextNoClip(rc, font_, ybase, text, fore,
-    ColourRGBA(tb_color >> 16, (tb_color & 0x00ff00) >> 8, tb_color & 0x0000ff));
+//    fprintf(stderr, "%x\n", this->vs.styles[0].back.OpaqueRGB());
+    DrawTextNoClip(rc, font_, ybase, text, fore, ColourRGBA(buffer[y * tb_width() + x].bg));
   }
   /**
    * Measures the width of characters in the given string and writes them to the given position
@@ -520,15 +529,21 @@ public:
         rcWhole, fontForCharacter, rcWhole.bottom, std::string(&ch, 1), marker->fore, marker->back);
       return;
     }
+#ifdef DEBUG
     fprintf(stderr, "DrawLineMarker %d\n", static_cast<int>(marker->markType));
+#endif
   }
   /** Draws the text representation of a wrap marker. */
   void DrawWrapMarker(PRectangle rcPlace, bool isEndMarker, ColourRGBA wrapColour) {
+#ifdef DEBUG
     fprintf(stderr, "DrawWrapMaker\n");
+#endif
   }
   /** Draws the text representation of a tab arrow. */
   void DrawTabArrow(PRectangle rcTab, const ViewStyle &vsDraw) {
+#ifdef DEBUG
     fprintf(stderr, "DrawTabArrow\n");
+#endif
   }
 
   bool isCallTip = false;
@@ -609,7 +624,9 @@ void Window::SetPositionRelative(PRectangle rc, const Window *relativeTo) {
   if (y < 0) y = begy; // align top
   // Update the location.
   reinterpret_cast<TermboxWin *>(wid)->Move(x, y);
+#ifdef DEBUG
   fprintf(stderr, "SetPositionRelative %d, %d\n", x, y);
+#endif
 }
 /** Identical to `Window::GetPosition()`. */
 PRectangle Window::GetClientPosition() const { return GetPosition(); }
@@ -1126,7 +1143,9 @@ public:
       pos = WndProc(Message::PositionBefore, pos, 0); // draw inside selection
     int y = WndProc(Message::PointYFromPosition, 0, pos);
     int x = WndProc(Message::PointXFromPosition, 0, pos);
+#ifdef DEBUG
     fprintf(stderr, "update cursor pos = %d, %d, %d\n", pos, x, y);
+#endif
 //    tb_set_cursor(17, 0);
 //    tb_present();
 //    wmove(GetWINDOW(), y, x);
