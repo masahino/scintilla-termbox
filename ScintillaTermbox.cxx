@@ -1146,10 +1146,8 @@ public:
 #ifdef DEBUG
     fprintf(stderr, "update cursor pos = %d, %d, %d\n", pos, x, y);
 #endif
-//    tb_set_cursor(17, 0);
-//    tb_present();
-//    wmove(GetWINDOW(), y, x);
-//    wrefresh(GetWINDOW());
+    tb_set_cursor(x, y);
+    tb_present();
   }
   /**
    * Repaints the Scintilla window on the physical screen.
