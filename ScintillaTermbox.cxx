@@ -1144,9 +1144,9 @@ public:
     int y = WndProc(Message::PointYFromPosition, 0, pos);
     int x = WndProc(Message::PointXFromPosition, 0, pos);
 #ifdef DEBUG
-    fprintf(stderr, "update cursor pos = %d, %d, %d\n", pos, x, y);
+    fprintf(stderr, "update cursor pos = %d, %d, %d\n", pos, GetWINDOW()->left + x, GetWINDOW()->top + y);
 #endif
-    tb_set_cursor(x, y);
+    tb_set_cursor(GetWINDOW()->left + x, GetWINDOW()->top + y);
     tb_present();
   }
   /**
