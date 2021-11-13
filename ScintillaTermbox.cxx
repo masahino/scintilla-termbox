@@ -998,12 +998,12 @@ public:
     int top = reinterpret_cast<TermboxWin *>(wMain.GetID())->top;
     // Draw the gutter.
 //    wattr_set(w, 0, term_color_pair(COLOR_WHITE, COLOR_BLACK), nullptr);
-    for (int i = 0; i < maxx; i++) tb_change_cell(left + i, top + maxy - 1, 0x2588, 0xffffff, 0x000000);
+    for (int i = 0; i < maxx; i++) tb_change_cell(left + i, top + maxy - 1, ' ', 0x282828, 0x282828);
     // Draw the bar.
     scrollBarHPos = static_cast<float>(xOffset) / scrollWidth * maxx;
 //    wattr_set(w, 0, term_color_pair(COLOR_BLACK, COLOR_WHITE), nullptr);
     for (int i = scrollBarHPos; i < scrollBarHPos + scrollBarWidth; i++)
-      tb_change_cell(left + i, top + maxy - 1, ' ', 0x000000, 0xffffff);
+      tb_change_cell(left + i, top + maxy - 1, ' ', 0xd8d8d8, 0xd8d8d8);
   }
   /**
    * Sets the height of the vertical scroll bar and width of the horizontal scroll bar.
