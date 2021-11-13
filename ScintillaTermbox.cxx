@@ -983,11 +983,11 @@ public:
     int left = reinterpret_cast<TermboxWin *>(wMain.GetID())->left;
     int top = reinterpret_cast<TermboxWin *>(wMain.GetID())->top;
     // Draw the gutter.
-    for (int i = 0; i < maxy; i++) tb_change_cell(left + maxx - 1, top + i, 0x2591, 0xffffff, 0x000000);
+    for (int i = 0; i < maxy; i++) tb_change_cell(left + maxx - 1, top + i, ' ', 0x282828, 0x282828);
     // Draw the bar.
     scrollBarVPos = static_cast<float>(topLine) / (MaxScrollPos() + LinesOnScreen() - 1) * maxy;
     for (int i = scrollBarVPos; i < scrollBarVPos + scrollBarHeight; i++)
-      tb_change_cell(left + maxx - 1, top + i, ' ', 0x000000, 0xffffff);
+      tb_change_cell(left + maxx - 1, top + i, ' ', 0xd8d8d8, 0xd8d8d8);
   }
   /** Draws the horizontal scroll bar. */
   void SetHorizontalScrollPos() override {
