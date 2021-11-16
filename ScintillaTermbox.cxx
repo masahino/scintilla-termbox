@@ -388,7 +388,7 @@ public:
    */
   void DrawTextTransparent(PRectangle rc, const Font *font_, XYPOSITION ybase,
     std::string_view text, ColourRGBA fore) override {
-    if (static_cast<int>(rc.top) > reinterpret_cast<TermboxWin *>(win)->bottom - 1) return;
+    if (static_cast<int>(rc.top) > reinterpret_cast<TermboxWin *>(win)->bottom) return;
     int y = reinterpret_cast<TermboxWin *>(win)->top + static_cast<int>(rc.top);
     int x = reinterpret_cast<TermboxWin *>(win)->left + static_cast<int>(rc.left);
     struct tb_cell *buffer = tb_cell_buffer();
