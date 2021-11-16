@@ -54,6 +54,8 @@ int main(int argc, char **argv) {
   SSM(SCI_SETMARGINMASKN, 2, SC_MASK_FOLDERS);
   SSM(SCI_SETMARGINSENSITIVEN, 2, 1);
   SSM(SCI_SETAUTOMATICFOLD, SC_AUTOMATICFOLD_CLICK, 0);
+//  SSM(SCI_SETVSCROLLBAR, 1, 1);
+//  SSM(SCI_SETHSCROLLBAR, 1, 1);
   SSM(SCI_SETFOCUS, 1, 0);
   scintilla_refresh(sci);
 
@@ -100,6 +102,12 @@ while (tb_poll_event(&ev))
           break;
         case TB_KEY_CTRL_D:
           SSM(SCI_AUTOCSETMAXHEIGHT, 16, 0);
+          break;
+        case TB_KEY_CTRL_E:
+          SSM(SCI_SETVSCROLLBAR, 0, 0);
+          break;
+        case TB_KEY_CTRL_F:
+          SSM(SCI_SETVSCROLLBAR, 1, 0);
           break;
         default:
           break;

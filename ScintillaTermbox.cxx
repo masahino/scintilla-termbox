@@ -962,7 +962,7 @@ public:
     height = tb_height();
     width = tb_width();
 //    wMain = tb_cell_buffer();
-    wMain = new TermboxWin(0, 0, width, height);
+    wMain = new TermboxWin(0, 0, width - 1, height - 1);
     if (sur) sur->Init(wMain.GetID());
     InvalidateStyleRedraw(); // needed to fully initialize Scintilla
   }
@@ -978,6 +978,7 @@ public:
   }
   /** Draws the vertical scroll bar. */
   void SetVerticalScrollPos() override {
+    if (!verticalScrollBarVisible) return;
     int maxy = reinterpret_cast<TermboxWin *>(wMain.GetID())->Height();
     int maxx = reinterpret_cast<TermboxWin *>(wMain.GetID())->Width();
     int left = reinterpret_cast<TermboxWin *>(wMain.GetID())->left;
