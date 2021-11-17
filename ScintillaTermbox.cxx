@@ -217,7 +217,9 @@ public:
    */
   void FillRectangle(PRectangle rc, Fill fill) override {
     if (!win) return;
-//    fprintf(stderr, "FillRectangle (%lf, %lf, %lf, %lf) %x\n", rc.left, rc.top, rc.right, rc.bottom, fill.colour.OpaqueRGB());
+#ifdef DEBUG
+    fprintf(stderr, "FillRectangle (%lf, %lf, %lf, %lf) %x\n", rc.left, rc.top, rc.right, rc.bottom, fill.colour.OpaqueRGB());
+#endif
     //wattr_set(win, 0, term_color_pair(COLOR_WHITE, fill.colour), nullptr);
     char ch = ' ';
     if (fabs(rc.left - static_cast<int>(rc.left)) > 0.1) {
@@ -236,8 +238,8 @@ public:
     int top = 0;
     int left = 0;
     if (win) {
-      right = std::min(right, reinterpret_cast<TermboxWin *>(win)->right);
-      bottom = std::min(bottom, reinterpret_cast<TermboxWin *>(win)->bottom);
+      right = std::min(right, reinterpret_cast<TermboxWin *>(win)->Width());
+      bottom = std::min(bottom, reinterpret_cast<TermboxWin *>(win)->Height());
       top = reinterpret_cast<TermboxWin *>(win)->top;
       left = reinterpret_cast<TermboxWin *>(win)->left;
     }
@@ -708,8 +710,8 @@ public:
     } else
       list.push_back(std::string(" ") + s);
     int len = strlen(s); // TODO: UTF-8 awareness?
-    if (width < len + 1) {
-      width = len + 1; // include type character len
+    if (width < len + 2) {
+      width = len + 2; // include type character len
     }
     reinterpret_cast<TermboxWin *>(wid)->right = reinterpret_cast<TermboxWin *>(wid)->left + width - 1;
     reinterpret_cast<TermboxWin *>(wid)->bottom = reinterpret_cast<TermboxWin *>(wid)->top + height - 1;
@@ -721,7 +723,6 @@ public:
     int fore = 0;
     int back = 0;
     int left = reinterpret_cast<TermboxWin *>(wid)->left;
-    int right = reinterpret_cast<TermboxWin *>(wid)->right;
     int top = reinterpret_cast<TermboxWin *>(wid)->top;
 
     int len = static_cast<int>(list.size());
@@ -741,11 +742,11 @@ public:
         for (int j = 1; j < list.at(i).size(); j++) {
           tb_change_cell(left + j, top + i - s, list.at(i).c_str()[j], fore, back);
         }
-        for (int j = list.at(i).size(); j < right; j++) {
+        for (int j = list.at(i).size(); j < width; j++) {
           tb_change_cell(left + j, top + i - s, ' ', fore, back);
         }
       } else {
-        for (int j = 0; j < right; j++) {
+        for (int j = 0; j < width; j++) {
           tb_change_cell(left + j, top + i - s, ' ', fore, back);
         }
       }
@@ -1254,7 +1255,7 @@ public:
     }
 
     if (button == 1) {
-      if (verticalScrollBarVisible && x == GetWINDOW()->right - 1) {
+      if (verticalScrollBarVisible && x == GetWINDOW()->right) {
         // Scroll the vertical scrollbar.
         if (y < scrollBarVPos)
           return (ScrollTo(topLine - LinesOnScreen()), true);
@@ -1262,7 +1263,7 @@ public:
           return (ScrollTo(topLine + LinesOnScreen()), true);
         else
           draggingVScrollBar = true, dragOffset = y - scrollBarVPos;
-      } else if (horizontalScrollBarVisible && y == GetWINDOW()->bottom - 1) {
+      } else if (horizontalScrollBarVisible && y == GetWINDOW()->bottom) {
         // Scroll the horizontal scroll bar.
         if (x < scrollBarHPos)
           return (HorizontalScrollTo(xOffset - GetWINDOW()->right / 2), true);
@@ -1324,7 +1325,19 @@ public:
       // TODO: listbox->delegate->ListNotify(&event);
     }
   }
-
+  /**
+   * Returns a NUL-terminated copy of the text on the internal clipboard, not the primary and/or
+   * secondary X selections.
+   * The caller is responsible for `free`ing the returned text.
+   * @param len An optional pointer to store the length of the returned text in.
+   * @return clipboard text
+   */
+  char *GetClipboard(int *len) {
+    if (len) *len = clipboard.Length();
+    char *text = new char[clipboard.Length() + 1];
+    memcpy(text, clipboard.Data(), clipboard.Length() + 1);
+    return text;
+  }
   /**
    * Resize Scintilla Window.
    */
@@ -1366,7 +1379,7 @@ bool scintilla_send_mouse(void *sci, int event, unsigned int time, int button, i
   int begy = w->top, begx = w->left;
   int maxy = w->bottom, maxx = w->right;
   // Ignore most events outside the window.
-  if ((x < begx || x > begx + maxx - 1 || y < begy || y > begy + maxy - 1) && button != 4 &&
+  if ((x < begx || x > begx + maxx || y < begy || y > begy + maxy) && button != 4 &&
     button != 5 && event != SCM_DRAG)
     return false;
   y = y - begy, x = x - begx;
@@ -1377,6 +1390,9 @@ bool scintilla_send_mouse(void *sci, int event, unsigned int time, int button, i
   else if (event == SCM_RELEASE)
     return (scitermbox->MouseRelease(time, y, x, ctrl), true);
   return false;
+}
+char *scintilla_get_clipboard(void *sci, int *len) {
+  return reinterpret_cast<ScintillaTermbox *>(sci)->GetClipboard(len);
 }
   void scintilla_refresh(void *sci) { reinterpret_cast<ScintillaTermbox *>(sci)->Refresh(); }
   void scintilla_delete(void *sci) { delete reinterpret_cast<ScintillaTermbox *>(sci); }
