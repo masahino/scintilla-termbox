@@ -108,7 +108,7 @@ public:
       attrs = static_cast<int>(fp.weight); // font attributes are stored in fp.weight
   }
   ~FontImpl() noexcept override = default;
-  u_int32_t attrs = 0;
+  uint32_t attrs = 0;
 };
 std::shared_ptr<Font> Font::Allocate(const FontParameters &fp) {
   return std::make_shared<FontImpl>(fp);
@@ -394,11 +394,9 @@ public:
     int y = reinterpret_cast<TermboxWin *>(win)->top + static_cast<int>(rc.top);
     int x = reinterpret_cast<TermboxWin *>(win)->left + static_cast<int>(rc.left);
     struct tb_cell *buffer = tb_cell_buffer();
-//    attr_t attrs = mvwinch(win, static_cast<int>(rc.top), static_cast<int>(rc.left));
-//    short pair = PAIR_NUMBER(attrs), unused, back = COLOR_BLACK;
-//    if (pair > 0 && !isCallTip) pair_content(pair, &unused, &back);
-//    fprintf(stderr, "%x\n", this->vs.styles[0].back.OpaqueRGB());
-    DrawTextNoClip(rc, font_, ybase, text, fore, ColourRGBA(buffer[y * tb_width() + x].bg));
+    int tb_color = buffer[y * reinterpret_cast<TermboxWin *>(win)->Width() + x].bg;
+    DrawTextNoClip(rc, font_, ybase, text, fore,
+      ColourRGBA(tb_color >> 16, (tb_color & 0x00ff00) >> 8, tb_color & 0x0000ff));
   }
   /**
    * Measures the width of characters in the given string and writes them to the given position
