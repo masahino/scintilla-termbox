@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
   // clang-format on
   SSM(SCI_SETPROPERTY, (uptr_t) "fold", (sptr_t) "1");
   SSM(SCI_SETMARGINWIDTHN, 0, 2);
-  SSM(SCI_SETMARGINWIDTHN, 2, 1);
+  SSM(SCI_SETMARGINWIDTHN, 2, 2);
   SSM(SCI_SETMARGINMASKN, 2, SC_MASK_FOLDERS);
   SSM(SCI_SETMARGINSENSITIVEN, 2, 1);
   SSM(SCI_SETAUTOMATICFOLD, SC_AUTOMATICFOLD_CLICK, 0);
@@ -108,6 +108,9 @@ while (tb_poll_event(&ev))
           break;
         case TB_KEY_CTRL_F:
           SSM(SCI_SETVSCROLLBAR, 1, 0);
+          break;
+        case TB_KEY_CTRL_G:
+          SSM(SCI_CALLTIPSHOW, 40, "hoge");
           break;
         default:
           break;

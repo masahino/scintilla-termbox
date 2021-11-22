@@ -394,7 +394,7 @@ public:
     int y = reinterpret_cast<TermboxWin *>(win)->top + static_cast<int>(rc.top);
     int x = reinterpret_cast<TermboxWin *>(win)->left + static_cast<int>(rc.left);
     struct tb_cell *buffer = tb_cell_buffer();
-    int tb_color = buffer[y * reinterpret_cast<TermboxWin *>(win)->Width() + x].bg;
+    int tb_color = buffer[y * tb_width() + x].bg;
     DrawTextNoClip(rc, font_, ybase, text, fore,
       ColourRGBA(tb_color >> 16, (tb_color & 0x00ff00) >> 8, tb_color & 0x0000ff));
   }
@@ -590,8 +590,9 @@ void Window::Destroy() noexcept {
  * @return PRectangle with the window's boundaries.
  */
 PRectangle Window::GetPosition() const {
-  return PRectangle(0, 0, reinterpret_cast<TermboxWin *>(wid)->Width(),
-    reinterpret_cast<TermboxWin *>(wid)->Height());
+  int maxx = wid ? reinterpret_cast<TermboxWin *>(wid)->Width() : 0;
+  int maxy = wid ? reinterpret_cast<TermboxWin *>(wid)->Height() : 0;
+  return PRectangle(0, 0, maxx, maxy);
 }
 /**
  * Sets the position of the window relative to its parent window.
@@ -950,8 +951,8 @@ public:
     vs.lastSegItalicsOffset = 0; // no offset for italic characters at EOLs
     ac.widthLBDefault = 10; // more sane bound for autocomplete width
     ac.heightLBDefault = 10; // more sane bound for autocomplete  height
-    ct.colourBG = ColourRGBA(0, 0, 0); // black background color
-    ct.colourUnSel = ColourRGBA(0xC0, 0xC0, 0xC0); // white text
+    ct.colourBG = ColourRGBA(0xff, 0xff, 0xc6); // background color
+    ct.colourUnSel = ColourRGBA(0x0, 0x0, 0x0); // black text
     ct.insetX = 2; // border and arrow widths are 1 each
     ct.widthArrow = 1; // arrow width is 1 character
     ct.borderHeight = 1; // no extra empty lines in border height
@@ -1097,6 +1098,36 @@ public:
   sptr_t DefWndProc(Message iMessage, uptr_t wParam, sptr_t lParam) override { return 0; }
   /** Draws a CallTip, creating the curses window for it if necessary. */
   void CreateCallTipWindow(PRectangle rc) override {
+   if (!wMain.GetID()) return;
+    if (!ct.wCallTip.Created()) {
+      rc.right -= 1; // remove right-side padding
+      int begx = 0, begy = 0, maxx = 0, maxy = 0;
+      begx = GetWINDOW()->left;
+      begy = GetWINDOW()->top;
+      int xoffset = begx - rc.left, yoffset = begy - rc.top;
+      if (xoffset > 0) rc.left += xoffset, rc.right += xoffset;
+      if (yoffset > 0) rc.top += yoffset, rc.bottom += yoffset;
+      maxx = GetWINDOW()->Width();
+      maxy = GetWINDOW()->Height();
+      if (rc.Width() > maxx) rc.right = rc.left + maxx - 1;
+      if (rc.Height() > maxy) rc.bottom = rc.top + maxy - 1;
+      ct.wCallTip = new TermboxWin(rc.left, rc.top, rc.right, rc.bottom);
+    }
+    WindowID wid = ct.wCallTip.GetID();
+    std::unique_ptr<Surface> sur = Surface::Allocate(Technology::Default);
+    if (sur) {
+      sur->Init(wid);
+      dynamic_cast<SurfaceImpl *>(sur.get())->isCallTip = true;
+      TermboxWin *w = reinterpret_cast<TermboxWin *>(ct.wCallTip.GetID());
+      int bg = (ct.colourBG.GetRed() << 16) + (ct.colourBG.GetGreen() << 8)  + (ct.colourBG.GetBlue());
+      for (int y = w->top; y < w->bottom; y++) {
+        for (int x = w->left; x < w->right; x++) {
+          tb_change_cell(x, y, ' ', bg, bg);
+        }
+      }
+      ct.PaintCT(sur.get());
+      tb_present();
+    }
   }
   /** Adding menu items to the popup menu is not implemented. */
   void AddToPopUp(const char *label, int cmd = 0, bool enabled = true) override {}
