@@ -482,43 +482,33 @@ public:
     const LineMarker *marker = reinterpret_cast<const LineMarker *>(data);
     //wattr_set(win, 0, term_color_pair(marker->fore, marker->back), nullptr);
     switch (marker->markType) {
-/*
-    case MarkerSymbol::Circle: tb_change_cell(rcWhole.left, rcWhole.top, 'o', marker->fore, marker->back); return;
+    case MarkerSymbol::Circle: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x25CB, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::SmallRect:
-    case MarkerSymbol::RoundRect: mvwaddstr(win, rcWhole.top, rcWhole.left, "■"); return;
-    case MarkerSymbol::Arrow: mvwaddstr(win, rcWhole.top, rcWhole.left, "►"); return;
-    case MarkerSymbol::ShortArrow: mvwaddstr(win, rcWhole.top, rcWhole.left, "→"); return;
-*/
+    case MarkerSymbol::RoundRect: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x25A0, to_rgb(marker->fore), to_rgb(marker->back)); return;
+    case MarkerSymbol::Arrow: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x25B6, to_rgb(marker->fore), to_rgb(marker->back)); return;
+    case MarkerSymbol::ShortArrow:tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2192, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::Empty: tb_change_cell(left + rcWhole.left, top + rcWhole.top, ' ', to_rgb(marker->fore), to_rgb(marker->back)); return;
-/*
-    case MarkerSymbol::ArrowDown: mvwaddstr(win, rcWhole.top, rcWhole.left, "▼"); return;
-*/
-    case MarkerSymbol::Minus: tb_change_cell(left + rcWhole.left, top + rcWhole.top, '-', to_rgb(marker->fore), to_rgb(marker->back)); return;
-/*
+    case MarkerSymbol::ArrowDown: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x25BC, to_rgb(marker->fore), to_rgb(marker->back)); return;
+    case MarkerSymbol::Minus: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2500, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::BoxMinus:
-    case MarkerSymbol::BoxMinusConnected: mvwaddstr(win, rcWhole.top, rcWhole.left, "⊟"); return;
+    case MarkerSymbol::BoxMinusConnected: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x229F, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::CircleMinus:
-    case MarkerSymbol::CircleMinusConnected: mvwaddstr(win, rcWhole.top, rcWhole.left, "⊖"); return;
-*/
-    case MarkerSymbol::Plus: tb_change_cell(left + rcWhole.left, top + rcWhole.top, '+', to_rgb(marker->fore), to_rgb(marker->back)); return;
+    case MarkerSymbol::CircleMinusConnected: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2295, to_rgb(marker->fore), to_rgb(marker->back)); return;
+    case MarkerSymbol::Plus: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x253C, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::BoxPlus:
     case MarkerSymbol::BoxPlusConnected: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x229E, to_rgb(marker->fore), to_rgb(marker->back)); return;
-/*
     case MarkerSymbol::CirclePlus:
-    case MarkerSymbol::CirclePlusConnected: mvwaddstr(win, rcWhole.top, rcWhole.left, "⊕"); return;
-    case MarkerSymbol::VLine: mvwaddch(win, rcWhole.top, rcWhole.left, ACS_VLINE); return;
+    case MarkerSymbol::CirclePlusConnected: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2296, to_rgb(marker->fore), to_rgb(marker->back)); return;
+    case MarkerSymbol::VLine: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2502, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::LCorner:
-    case MarkerSymbol::LCornerCurve: mvwaddch(win, rcWhole.top, rcWhole.left, ACS_LLCORNER); return;
+    case MarkerSymbol::LCornerCurve: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2514, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::TCorner:
-    case MarkerSymbol::TCornerCurve: mvwaddch(win, rcWhole.top, rcWhole.left, ACS_LTEE); return;
-    case MarkerSymbol::DotDotDot: mvwaddstr(win, rcWhole.top, rcWhole.left, "…"); return;
-    case MarkerSymbol::Arrows: mvwaddstr(win, rcWhole.top, rcWhole.left, "»"); return;
-*/
+    case MarkerSymbol::TCornerCurve: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x251C, to_rgb(marker->fore), to_rgb(marker->back)); return;
+    case MarkerSymbol::DotDotDot: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x22EF, to_rgb(marker->fore), to_rgb(marker->back)); return;
+    case MarkerSymbol::Arrows: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x22D9, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::FullRect: FillRectangle(rcWhole, marker->back); return;
-/*
-    case MarkerSymbol::LeftRect: mvwaddstr(win, rcWhole.top, rcWhole.left, "▌"); return;
-    case MarkerSymbol::Bookmark: mvwaddstr(win, rcWhole.top, rcWhole.left, "Σ"); return;
-*/
+    case MarkerSymbol::LeftRect: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x258E, to_rgb(marker->fore), to_rgb(marker->back)); return;
+    case MarkerSymbol::Bookmark: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2211, to_rgb(marker->fore), to_rgb(marker->back)); return;
     default:
       break; // prevent warning
     }
@@ -931,7 +921,7 @@ public:
     vs.SetElementRGB(Element::Caret, 0xFFFFFF); // white caret
     //    vs.caret.style = CaretStyle::Curses; // block carets
     vs.leftMarginWidth = 0, vs.rightMarginWidth = 0; // no margins
-    vs.ms[1].width = 1; // marker margin width should be 1
+    vs.ms[1].width = 2; // marker margin width should be 1
     vs.extraDescent = -1; // hack to make lineHeight 1 instead of 2
     // Set default marker foreground and background colors.
     for (int i = 0; i <= MARKER_MAX; i++) {
@@ -941,10 +931,13 @@ public:
       vs.markers[i].customDraw = DrawLineMarker;
     }
     // Use '+' and '-' fold markers.
-    vs.markers[static_cast<int>(MarkerOutline::FolderOpen)].markType = MarkerSymbol::Minus;
-    vs.markers[static_cast<int>(MarkerOutline::Folder)].markType = MarkerSymbol::Plus;
-    vs.markers[static_cast<int>(MarkerOutline::FolderOpenMid)].markType = MarkerSymbol::Minus;
-    vs.markers[static_cast<int>(MarkerOutline::FolderEnd)].markType = MarkerSymbol::Plus;
+    vs.markers[static_cast<int>(MarkerOutline::FolderOpen)].markType = MarkerSymbol::BoxMinus;
+    vs.markers[static_cast<int>(MarkerOutline::Folder)].markType = MarkerSymbol::BoxPlus;
+    vs.markers[static_cast<int>(MarkerOutline::FolderOpenMid)].markType = MarkerSymbol::BoxMinus;
+    vs.markers[static_cast<int>(MarkerOutline::FolderEnd)].markType = MarkerSymbol::BoxPlus;
+    vs.markers[static_cast<int>(MarkerOutline::FolderSub)].markType = MarkerSymbol::VLine;
+    vs.markers[static_cast<int>(MarkerOutline::FolderTail)].markType = MarkerSymbol::LCorner;
+    vs.markers[static_cast<int>(MarkerOutline::FolderMidTail)].markType = MarkerSymbol::TCorner;
     displayPopupMenu = PopUp::Never; // no context menu
     vs.marginNumberPadding = 0; // no number margin padding
     vs.ctrlCharPadding = 0; // no ctrl character text blob padding
