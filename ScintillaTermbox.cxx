@@ -103,7 +103,7 @@ public:
    */
   FontImpl(const FontParameters &fp) {
     if (fp.weight == FontWeight::Bold)
-    attrs = TB_BOLD;
+      attrs = TB_BOLD;
     else if (fp.weight != FontWeight::Normal && fp.weight != FontWeight::SemiBold)
       attrs = static_cast<int>(fp.weight); // font attributes are stored in fp.weight
   }
@@ -571,6 +571,7 @@ Window::~Window() noexcept {}
  * function is never called, hence why `scintilla_delete()` is the complement to `scintilla_new()`.
  */
 void Window::Destroy() noexcept {
+  wid = nullptr;
 }
 /**
  * Returns the window's boundaries.
