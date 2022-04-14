@@ -106,6 +106,10 @@ public:
       attrs = TB_BOLD;
     else if (fp.weight != FontWeight::Normal && fp.weight != FontWeight::SemiBold)
       attrs = static_cast<int>(fp.weight); // font attributes are stored in fp.weight
+#ifdef TB_ITALIC
+    if (fp.italic == true)
+      attrs |= TB_ITALIC;
+#endif
   }
   ~FontImpl() noexcept override = default;
   uint32_t attrs = 0;

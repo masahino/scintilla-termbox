@@ -36,7 +36,9 @@ int main(int argc, char **argv) {
   SSM(SCI_SETILEXER, 0, (sptr_t)pLexer);
   SSM(SCI_SETKEYWORDS, 0, (sptr_t) "int char");
   SSM(SCI_STYLESETFORE, SCE_C_COMMENT, 0x383838);
+  SSM(SCI_STYLESETITALIC, SCE_C_COMMENT, true);
   SSM(SCI_STYLESETFORE, SCE_C_COMMENTLINE, 0x383838);
+  SSM(SCI_STYLESETITALIC, SCE_C_COMMENTLINE, true);
   SSM(SCI_STYLESETFORE, SCE_C_NUMBER, 0xdc9656);
   SSM(SCI_STYLESETFORE, SCE_C_WORD, 0xaf8bba);
   SSM(SCI_STYLESETFORE, SCE_C_STRING, 0x6cb5a1);
@@ -46,7 +48,7 @@ int main(int argc, char **argv) {
       "int main(int argc, char **argv) {\n"
       "    // Start up the gnome\n"
       "    // 日本語でコメント\n"
-      "    gnome_init(\"stest\", \"1.0\", argc, argv);\n}");
+      "\tgnome_init(\"stest\", \"1.0\", argc, argv);\n}");
   // clang-format on
   SSM(SCI_SETPROPERTY, (uptr_t) "fold", (sptr_t) "1");
   SSM(SCI_SETMARGINWIDTHN, 0, 2);
@@ -56,6 +58,8 @@ int main(int argc, char **argv) {
   SSM(SCI_SETAUTOMATICFOLD, SC_AUTOMATICFOLD_CLICK, 0);
 //  SSM(SCI_SETVSCROLLBAR, 1, 1);
 //  SSM(SCI_SETHSCROLLBAR, 1, 1);
+  SSM(SCI_SETINDENTATIONGUIDES, 2, 2);
+  SSM(SCI_SETHIGHLIGHTGUIDE, 1, 1);
   SSM(SCI_SETFOCUS, 1, 0);
   scintilla_refresh(sci);
 
