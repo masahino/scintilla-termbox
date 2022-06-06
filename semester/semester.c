@@ -43,6 +43,8 @@ int main(int argc, char **argv) {
   SSM(SCI_STYLESETFORE, SCE_C_WORD, 0xaf8bba);
   SSM(SCI_STYLESETFORE, SCE_C_STRING, 0x6cb5a1);
   SSM(SCI_STYLESETBOLD, SCE_C_OPERATOR, 1);
+  SSM(SCI_STYLESETBACK, 253, 0x0000ff);
+  SSM(SCI_STYLESETFORE, 253, 0xffffff);
   // clang-format off
   SSM(SCI_INSERTTEXT, 0, (sptr_t)
       "int main(int argc, char **argv) {\n"
@@ -60,6 +62,10 @@ int main(int argc, char **argv) {
 //  SSM(SCI_SETHSCROLLBAR, 1, 1);
   SSM(SCI_SETINDENTATIONGUIDES, 2, 2);
   SSM(SCI_SETHIGHLIGHTGUIDE, 1, 1);
+  SSM(SCI_INDICSETFORE, 0, 0x007f00);
+  SSM(SCI_SETINDICATORVALUE, 0, 0);
+  SSM(SCI_SETINDICATORCURRENT, 0, 0);
+  SSM(SCI_INDICATORFILLRANGE, 1, 5);
   SSM(SCI_SETFOCUS, 1, 0);
   scintilla_refresh(sci);
 
@@ -115,6 +121,12 @@ while (tb_poll_event(&ev))
           break;
         case TB_KEY_CTRL_G:
           SSM(SCI_CALLTIPSHOW, 40, "hoge");
+          break;
+        case TB_KEY_CTRL_H:
+        fprintf(stderr, "ctrl-h\n");
+          SSM(SCI_ANNOTATIONSETTEXT, 2, "hogehoge\n\nabc");
+        SSM(SCI_ANNOTATIONSETSTYLE, 2, 253);
+        SSM(SCI_ANNOTATIONSETVISIBLE, 3, 0);
           break;
         default:
           break;

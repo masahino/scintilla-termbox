@@ -322,7 +322,7 @@ public:
    */
   void DrawTextNoClip(PRectangle rc, const Font *font_, XYPOSITION ybase, std::string_view text,
     ColourRGBA fore, ColourRGBA back) override {
-    
+
     uint32_t attrs = dynamic_cast<const FontImpl *>(font_)->attrs;
     if (rc.left < clip.left) {
       // Do not overwrite margin text.
@@ -351,14 +351,18 @@ public:
         chars += grapheme_width(text.data() + bytes);
       if (chars > clip_chars) break;
     }
-//    fprintf(stderr, "%d(%d, %d, %06x, %06x)[%s]\n", bytes, x, y, fore.OpaqueRGB(), back.OpaqueRGB(), text.data());
-
+#ifdef DEBUG
+    fprintf(stderr, "%ld(%d, %d, %06x, %06x)[%s]\n", bytes, x, y, fore.OpaqueRGB(), back.OpaqueRGB(), text.data());
+#endif
 /*
     for (int i = 0; i < bytes; i++) {
       tb_change_cell(x, y, text.at(i), fore.OpaqueRGB() | attrs, back.OpaqueRGB());
       x++;
     }
 */
+    if (bytes == 0) {
+      return;
+    }
     int len = 0;
     int width = 0;
     const char *str = text.data();
