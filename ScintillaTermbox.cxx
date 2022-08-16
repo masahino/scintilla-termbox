@@ -490,7 +490,7 @@ public:
     const LineMarker *marker = reinterpret_cast<const LineMarker *>(data);
     //wattr_set(win, 0, term_color_pair(marker->fore, marker->back), nullptr);
     switch (marker->markType) {
-    case MarkerSymbol::Circle: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x25CB, to_rgb(marker->fore), to_rgb(marker->back)); return;
+    case MarkerSymbol::Circle: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x25CF, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::SmallRect:
     case MarkerSymbol::RoundRect: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x25A0, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::Arrow: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x25B6, to_rgb(marker->fore), to_rgb(marker->back)); return;
