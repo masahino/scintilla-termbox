@@ -517,6 +517,7 @@ public:
     case MarkerSymbol::FullRect: FillRectangle(rcWhole, marker->back); return;
     case MarkerSymbol::LeftRect: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x258E, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::Bookmark: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2211, to_rgb(marker->fore), to_rgb(marker->back)); return;
+    case MarkerSymbol::Bar: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2590, to_rgb(marker->fore), to_rgb(marker->back)); return;
     default:
       break; // prevent warning
     }
@@ -764,7 +765,7 @@ public:
     int len = strlen(prefix);
     for (unsigned int i = 0; i < list.size(); i++) {
       const char *item = list.at(i).c_str();
-      item += UTF8DrawBytes(reinterpret_cast<const unsigned char *>(item), strlen(item));
+      item += UTF8DrawBytes(reinterpret_cast<const char *>(item), strlen(item));
       if (strncmp(prefix, item, len) == 0) return i;
     }
     return -1;
@@ -775,7 +776,7 @@ public:
    */
   std::string GetValue(int n) override {
     const char *item = list.at(n).c_str();
-    item += UTF8DrawBytes(reinterpret_cast<const unsigned char *>(item), strlen(item));
+    item += UTF8DrawBytes(reinterpret_cast<const char *>(item), strlen(item));
     return item;
   }
   /**
@@ -787,7 +788,7 @@ public:
    */
   void RegisterImage(int type, const char *xpm_data) override {
     if (type < 0 || type > IMAGE_MAX) return;
-    int len = UTF8DrawBytes(reinterpret_cast<const unsigned char *>(xpm_data), strlen(xpm_data));
+    int len = UTF8DrawBytes(reinterpret_cast<const char *>(xpm_data), strlen(xpm_data));
     for (int i = 0; i < len; i++) types[type][i] = xpm_data[i];
     types[type][len] = '\0';
   }
@@ -1238,9 +1239,9 @@ public:
       TermboxWin *w = reinterpret_cast<TermboxWin *>(ac.lb->GetID()), *parent = GetWINDOW();
       int begy = w->top - parent->top; // y is relative to the view
       int begx = w->left - parent->left; // x is relative to the view
-      int maxy = w->bottom - 1, maxx = w->right - 1; // ignore border
+      int maxy = w->bottom, maxx = w->right - 1; // ignore border
       int ry = y - begy, rx = x - begx; // relative to list box
-      if (ry > 0 && ry < maxy && rx > 0 && rx < maxx) {
+      if (ry >= 0 && ry <= maxy && rx > 0 && rx < maxx) {
         if (button == 1) {
           // Select a list item.
           // The currently selected item is normally displayed in the middle.
@@ -1251,7 +1252,7 @@ public:
           else if (n >= ac.lb->Length() - middle)
             ny = (n - 1) % ac.lb->GetVisibleRows(); // it's near the end
           // Compute the index of the item to select.
-          int offset = ry - ny - 1; // -1 ignores list box border
+          int offset = ry - ny; // -1 ignores list box border
           if (offset == 0 && time - autoCompleteLastClickTime < Platform::DoubleClickTime()) {
             ListBoxImpl *listbox = reinterpret_cast<ListBoxImpl *>(ac.lb.get());
             if (listbox->delegate) {
@@ -1270,7 +1271,7 @@ public:
             ac.lb->Select(n + 1);
         }
         return true;
-      } else if (ry == 0 || ry == maxy || rx == 0 || rx == maxx)
+      } else if (rx == 0 || rx == maxx)
         return true; // ignore border click
     } else if (ct.inCallTipMode && button == 1) {
       // Send the click to the CallTip.
