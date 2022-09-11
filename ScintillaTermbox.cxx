@@ -128,6 +128,10 @@ std::shared_ptr<Font> Font::Allocate(const FontParameters &fp) {
 class SurfaceImpl : public Surface {
   PRectangle clip;
   WindowID win = nullptr;
+  int width = 0;
+  int height = 0;
+  int pattern = false;
+  ColourRGBA pattern_colour;
 
   /**
    * Returns the number of columns used to display the first UTF-8 character in `s`, taking
@@ -160,12 +164,21 @@ public:
   }
   /** Identical to `Init()` using the given curses `WINDOW`. */
   void Init(SurfaceID sid, WindowID wid) override { Init(wid); }
+
+  SurfaceImpl(int w, int h) noexcept {
+    width = w;
+    height = h;
+    pattern = true;
+  }
   /**
    * Surface pixmaps are not implemented.
    * Cannot return a nullptr because Scintilla assumes the allocation succeeded.
    */
   std::unique_ptr<Surface> AllocatePixMap(int width, int height) override {
-    return std::make_unique<SurfaceImpl>();
+#ifdef DEBUG
+    fprintf(stderr, "allocatePixmap %d, %d\n", width, height);
+#endif
+    return std::make_unique<SurfaceImpl>(width, height);
   }
 
   /** Surface modes other than UTF-8 (like DBCS and bidirectional) are not implemented. */
@@ -220,10 +233,15 @@ public:
    * appropriately instead of clearing the given portion of the screen.
    */
   void FillRectangle(PRectangle rc, Fill fill) override {
-    if (!win) return;
+    if (pattern == true) {
+      pattern_colour = fill.colour;
+      return;
+    }
 #ifdef DEBUG
-    fprintf(stderr, "FillRectangle (%lf, %lf, %lf, %lf) %x\n", rc.left, rc.top, rc.right, rc.bottom, fill.colour.OpaqueRGB());
+    fprintf(stderr, "FillRectangle win = %x\t pattern = %d, (%lf, %lf, %lf, %lf) %x\n", win, pattern, rc.left, rc.top, rc.right, rc.bottom, fill.colour.OpaqueRGB());
 #endif
+    if (!win) return;
+
     //wattr_set(win, 0, term_color_pair(COLOR_WHITE, fill.colour), nullptr);
     char ch = ' ';
     if (fabs(rc.left - static_cast<int>(rc.left)) > 0.1) {
@@ -263,9 +281,17 @@ public:
    */
   void FillRectangle(PRectangle rc, Surface &surfacePattern) override {
 #ifdef DEBUG
-    fprintf(stderr, "FillRctangle with SurfacePattern \n");
+    fprintf(stderr, "FillRctangle with SurfacePattern (%f, %f) -> (%f, %f)\n",rc.left, rc.top, rc.right, rc.bottom);
 #endif
-    FillRectangle(rc, ColourRGBA(0, 0, 0));
+    SurfaceImpl &surfi = dynamic_cast<SurfaceImpl &>(surfacePattern);
+    if (surfi.pattern == true) {
+#ifdef DEBUG
+      fprintf(stderr, "FillRectangle pattern %x\n", surfi.pattern_color);
+#endif
+      FillRectangle(rc, surfi.pattern_colour);
+    } else {
+      FillRectangle(rc, ColourRGBA(0, 0, 0));
+    }
   }
   /**
    * Scintilla will never call this method.
@@ -489,6 +515,9 @@ public:
     // TODO: handle fold marker highlighting.
     const LineMarker *marker = reinterpret_cast<const LineMarker *>(data);
     //wattr_set(win, 0, term_color_pair(marker->fore, marker->back), nullptr);
+#ifdef DEBUG
+    fprintf(stderr, "drawlinemarker %d (%d, %d) -> (%f, %f)\n", marker->markType, left, top, rcWhole.left, rcWhole.top);
+#endif
     switch (marker->markType) {
     case MarkerSymbol::Circle: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x25CF, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::SmallRect:
@@ -517,8 +546,9 @@ public:
     case MarkerSymbol::FullRect: FillRectangle(rcWhole, marker->back); return;
     case MarkerSymbol::LeftRect: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x258E, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::Bookmark: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2211, to_rgb(marker->fore), to_rgb(marker->back)); return;
-    case MarkerSymbol::Bar: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2590, to_rgb(marker->fore), to_rgb(marker->back)); return;
+    case MarkerSymbol::Bar: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2590, to_rgb(marker->fore), to_rgb(marker->back)); fprintf(stderr,"Bar %x, %x\n", to_rgb(marker->fore), to_rgb(marker->back)); return;
     default:
+			    fprintf(stderr,"unknown type %d\n", marker->markType);
       break; // prevent warning
     }
    if (marker->markType >= MarkerSymbol::Character) {
