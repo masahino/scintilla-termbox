@@ -546,9 +546,8 @@ public:
     case MarkerSymbol::FullRect: FillRectangle(rcWhole, marker->back); return;
     case MarkerSymbol::LeftRect: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x258E, to_rgb(marker->fore), to_rgb(marker->back)); return;
     case MarkerSymbol::Bookmark: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2211, to_rgb(marker->fore), to_rgb(marker->back)); return;
-    case MarkerSymbol::Bar: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2590, to_rgb(marker->fore), to_rgb(marker->back)); fprintf(stderr,"Bar %x, %x\n", to_rgb(marker->fore), to_rgb(marker->back)); return;
+    case MarkerSymbol::Bar: tb_change_cell(left + rcWhole.left, top + rcWhole.top, 0x2590, to_rgb(marker->fore), to_rgb(marker->back)); return;
     default:
-			    fprintf(stderr,"unknown type %d\n", marker->markType);
       break; // prevent warning
     }
    if (marker->markType >= MarkerSymbol::Character) {
