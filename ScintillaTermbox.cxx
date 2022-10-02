@@ -286,7 +286,7 @@ public:
     SurfaceImpl &surfi = dynamic_cast<SurfaceImpl &>(surfacePattern);
     if (surfi.pattern == true) {
 #ifdef DEBUG
-      fprintf(stderr, "FillRectangle pattern %x\n", surfi.pattern_color);
+      fprintf(stderr, "FillRectangle pattern %x\n", surfi.pattern_colour);
 #endif
       FillRectangle(rc, surfi.pattern_colour);
     } else {
@@ -1464,4 +1464,3 @@ char *scintilla_get_clipboard(void *sci, int *len) {
     reinterpret_cast<ScintillaTermbox *>(sci)->Move(new_x, new_y);
   }
 }
-
