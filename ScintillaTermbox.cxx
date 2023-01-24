@@ -1254,7 +1254,6 @@ public:
   /**
    * Handles a mouse button press.
    * @param button The button number pressed, or `0` if none.
-   * @param time The time in milliseconds of the mouse event.
    * @param y The y coordinate of the mouse event relative to this window.
    * @param x The x coordinate of the mouse event relative to this window.
    * @param shift Flag indicating whether or not the shift modifier key is pressed.
@@ -1262,7 +1261,9 @@ public:
    * @param alt Flag indicating whether or not the alt modifier key is pressed.
    * @return whether or not the mouse event was handled
    */
-  bool MousePress(int button, unsigned int time, int y, int x, bool shift, bool ctrl, bool alt) {
+  bool MousePress(int button, int y, int x, bool shift, bool ctrl, bool alt) {
+    const auto now = std::chrono::system_clock::now().time_since_epoch();
+    auto time = static_cast<unsigned int>(std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
     if (ac.Active() && (button == 1 || button == 4 || button == 5)) {
       // Select an autocompletion list item if possible or scroll the list.
       TermboxWin *w = reinterpret_cast<TermboxWin *>(ac.lb->GetID()), *parent = GetWINDOW();
@@ -1372,12 +1373,13 @@ public:
   }
   /**
    * Sends a mouse release event to Scintilla.
-   * @param time The time in milliseconds of the mouse event.
    * @param y The y coordinate of the mouse event relative to this window.
    * @param x The x coordinate of the mouse event relative to this window.
    * @param ctrl Flag indicating whether or not the control modifier key is pressed.
    */
-  void MouseRelease(int time, int y, int x, int ctrl) {
+  void MouseRelease(int y, int x, int ctrl) {
+    const auto now = std::chrono::system_clock::now().time_since_epoch();
+    auto time = static_cast<unsigned int>(std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
     if (draggingVScrollBar || draggingHScrollBar)
       draggingVScrollBar = false, draggingHScrollBar = false;
     else if (HaveMouseCapture()) {
@@ -1433,7 +1435,7 @@ extern "C" {
   void scintilla_send_key(void *sci, int key, bool shift, bool ctrl, bool alt) {
     reinterpret_cast<ScintillaTermbox *>(sci)->KeyPress(key, shift, ctrl, alt);
   }
-bool scintilla_send_mouse(void *sci, int event, unsigned int time, int button, int y, int x,
+bool scintilla_send_mouse(void *sci, int event, int button, int y, int x,
   bool shift, bool ctrl, bool alt) {
   ScintillaTermbox *scitermbox = reinterpret_cast<ScintillaTermbox *>(sci);
   TermboxWin *w = scitermbox->GetWINDOW();
@@ -1445,11 +1447,11 @@ bool scintilla_send_mouse(void *sci, int event, unsigned int time, int button, i
     return false;
   y = y - begy, x = x - begx;
   if (event == SCM_PRESS)
-    return scitermbox->MousePress(button, time, y, x, shift, ctrl, alt);
+    return scitermbox->MousePress(button, y, x, shift, ctrl, alt);
   else if (event == SCM_DRAG)
     return scitermbox->MouseMove(y, x, shift, ctrl, alt);
   else if (event == SCM_RELEASE)
-    return (scitermbox->MouseRelease(time, y, x, ctrl), true);
+    return (scitermbox->MouseRelease(y, x, ctrl), true);
   return false;
 }
 char *scintilla_get_clipboard(void *sci, int *len) {
