@@ -782,6 +782,10 @@ public:
     }
     tb_present();
     selection = n;
+    if (delegate) {
+      ListBoxEvent event(ListBoxEvent::EventType::selectionChange);
+      delegate->ListNotify(&event);
+    }
   }
   /** Returns the currently selected item in the listbox. */
   int GetSelection() override { return selection; }
