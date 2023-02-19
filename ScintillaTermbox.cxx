@@ -119,6 +119,18 @@ std::shared_ptr<Font> Font::Allocate(const FontParameters &fp) {
   return std::make_shared<FontImpl>(fp);
 }
 
+  /**
+   * Returns the number of columns used to display the first UTF-8 character in `s`, taking
+   * into account zero-width combining characters.
+   * @param s The string that contains the first UTF-8 character to display.
+   */
+int grapheme_width(const char *s) {
+  wchar_t wch;
+  if (mbtowc(&wch, s, MB_CUR_MAX) < 1) return 1;
+  int width = wcwidth(wch);
+  return width >= 0 ? width : 1;
+}
+
 // Surface handling.
 
 /**
@@ -134,16 +146,6 @@ class SurfaceImpl : public Surface {
   int pattern = false;
   ColourRGBA pattern_colour;
 
-  /**
-   * Returns the number of columns used to display the first UTF-8 character in `s`, taking
-   * into account zero-width combining characters.
-   * @param s The string that contains the first UTF-8 character to display.
-   */
-  int grapheme_width(const char *s) {
-    int len = utf8_char_length(s[0]);
-    if (len > 1) return 2;
-    return 1;
-  }
 
   int to_rgb(ColourRGBA c) {
     return (c.GetRed() << 16) + (c.GetGreen() << 8)  + (c.GetBlue());
@@ -768,10 +770,21 @@ public:
       }
       if (i < len) {
         tb_change_cell(left, top + i - s, ' ', fore, back);
-        for (int j = 1; j < list.at(i).size(); j++) {
-          tb_change_cell(left + j, top + i - s, list.at(i).c_str()[j], fore, back);
+        int text_offset = 1;
+        int text_width = 0;
+        int x = 1;
+        const char *str = list.at(i).c_str();
+        while (*str) {
+          uint32_t uni;
+          text_width = grapheme_width(str + text_offset);
+          text_offset += utf8_char_to_unicode(&uni, str + text_offset);
+          tb_change_cell(left + x, top + i - s, uni, fore, back);
+          x += text_width;
+          if (text_offset >= list.at(i).size()) {
+            break;
+          }
         }
-        for (int j = list.at(i).size(); j < width; j++) {
+        for (int j = x; j < width; j++) {
           tb_change_cell(left + j, top + i - s, ' ', fore, back);
         }
       } else {

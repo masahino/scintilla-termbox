@@ -14,7 +14,7 @@
 typedef void Scintilla;
 
 void scnotification(Scintilla *view, int msg, SCNotification *n, void *userdata) {
-  // printw("SCNotification received: %i", n->nmhdr.code);
+   fprintf(stderr, "SCNotification received: %i\n", n->nmhdr.code);
 }
 
 int main(int argc, char **argv) {
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
   SSM(SCI_INSERTTEXT, 0, (sptr_t)
       "int main(int argc, char **argv) {\n"
       "    // Start up the gnome\n"
-      "    // 日本語でコメント\n"
+      "    // •日本語でコメント\n"
       "\tgnome_init(\"stest\", \"1.0\", argc, argv);\n}");
   // clang-format on
   SSM(SCI_SETPROPERTY, (uptr_t) "fold", (sptr_t) "1");
@@ -108,7 +108,7 @@ while (tb_poll_event(&ev))
           scintilla_move(sci, 10, 19);
           break;
         case TB_KEY_CTRL_C:
-          SSM(SCI_AUTOCSHOW, 0, "abc opq xyz 01234567890 xxx xxx xxx xxx xxx");
+          SSM(SCI_AUTOCSHOW, 0, "abc •opq xyz 01234567890 漢字 xxx xxx xxx xxx");
           break;
         case TB_KEY_CTRL_D:
           SSM(SCI_AUTOCSETMAXHEIGHT, 16, 0);
@@ -150,7 +150,7 @@ while (tb_poll_event(&ev))
         } else if (ev.key == TB_KEY_MOUSE_RELEASE) {
           event = 3;
         }
-        scintilla_send_mouse(sci, event, millis, 1, ev.y, ev.x, false, false, false);
+        scintilla_send_mouse(sci, event, 1, ev.y, ev.x, false, false, false);
         scintilla_refresh(sci);
       }
      break;
