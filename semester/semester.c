@@ -14,7 +14,7 @@
 typedef void Scintilla;
 
 void scnotification(Scintilla *view, int msg, SCNotification *n, void *userdata) {
-   fprintf(stderr, "SCNotification received: %i\n", n->nmhdr.code);
+  // fprintf(stderr, "SCNotification received: %i\n", n->nmhdr.code);
 }
 
 int main(int argc, char **argv) {
@@ -120,7 +120,7 @@ while (tb_poll_event(&ev))
           SSM(SCI_SETVSCROLLBAR, 1, 0);
           break;
         case TB_KEY_CTRL_G:
-          SSM(SCI_CALLTIPSHOW, 40, "hoge");
+          SSM(SCI_CALLTIPSHOW, 40, "\001\nhoge\n\002");
           break;
         case TB_KEY_CTRL_H:
         fprintf(stderr, "ctrl-h\n");

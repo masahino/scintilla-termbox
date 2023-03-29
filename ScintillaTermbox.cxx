@@ -217,7 +217,16 @@ public:
   void Polygon(const Point *pts, size_t npts, FillStroke fillStroke) override {
 #ifdef DEBUG
     fprintf(stderr, "Polygon\n");
+    fprintf(stderr, "pts[0].x = %d, pts[0].y = %d\n", static_cast<int>(pts[0].x), static_cast<int>(pts[0].y));
 #endif
+    int top = reinterpret_cast<TermboxWin *>(win)->top;
+    int left = reinterpret_cast<TermboxWin *>(win)->left;
+    ColourRGBA &back = fillStroke.fill.colour;
+
+    if (pts[0].y < pts[npts - 1].y) // up arrow
+        tb_change_cell(left + static_cast<int>(pts[npts - 1].x - 2), top + static_cast<int>(pts[0].y), 0x25B2, 0x000000, to_rgb(back));
+    else if (pts[0].y > pts[npts - 1].y) // down arrow
+        tb_change_cell(left + static_cast<int>(pts[npts - 1].x - 2), top + static_cast<int>(pts[0].y - 2), 0x25BC, 0x000000, to_rgb(back));
   }
   /**
    * Scintilla will never call this method.
@@ -351,7 +360,6 @@ public:
    */
   void DrawTextNoClip(PRectangle rc, const Font *font_, XYPOSITION ybase, std::string_view text,
     ColourRGBA fore, ColourRGBA back) override {
-
     uint32_t attrs = dynamic_cast<const FontImpl *>(font_)->attrs;
     if (rc.left < clip.left) {
       // Do not overwrite margin text.
@@ -381,7 +389,7 @@ public:
       if (chars > clip_chars) break;
     }
 #ifdef DEBUG
-    fprintf(stderr, "%ld(%d, %d, %06x, %06x)[%s]\n", bytes, x, y, fore.OpaqueRGB(), back.OpaqueRGB(), text.data());
+    fprintf(stderr, "%ld(%d, %d, %d, %06x, %06x)[%s]\n", bytes, x, y, (int)rc.bottom, fore.OpaqueRGB(), back.OpaqueRGB(), text.data());
 #endif
 /*
     for (int i = 0; i < bytes; i++) {
