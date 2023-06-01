@@ -13,6 +13,7 @@ ifdef DEBUG
 else
   CXXFLAGS += -DNDEBUG -Os
 endif
+EXTRA_FLAGS =
 
 scintilla = ../bin/scintilla.a
 sci = AutoComplete.o CallTip.o CaseConvert.o CaseFolder.o CellBuffer.o CharacterCategoryMap.o \
@@ -26,7 +27,7 @@ vpath %.cxx ../src
 
 all: $(scintilla)
 $(sci) ScintillaTermbox.o: %.o: %.cxx
-	$(CXX) $(CXXFLAGS) -c $<
+	$(CXX) $(CXXFLAGS) $(EXTRA_FLAGS) -c $<
 $(scintilla): $(sci) ScintillaTermbox.o
 	$(AR) rc $@ $^
 	touch $@
