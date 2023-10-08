@@ -1,3 +1,4 @@
+# Copyright 2023 masahino.
 # Copyright 2012-2021 Mitchell. See LICENSE.
 
 .SUFFIXES: .cxx .c .o .h .a
@@ -26,9 +27,9 @@ vpath %.h ../src ../include
 vpath %.cxx ../src
 
 all: $(scintilla)
-$(sci) ScintillaTermbox.o: %.o: %.cxx
+$(sci) PlatTermbox.o ScintillaTermbox.o: %.o: %.cxx
 	$(CXX) $(CXXFLAGS) $(EXTRA_FLAGS) -c $<
-$(scintilla): $(sci) ScintillaTermbox.o
+$(scintilla): $(sci) PlatTermbox.o ScintillaTermbox.o
 	$(AR) rc $@ $^
 	touch $@
 clean: ; rm -f *.o $(scintilla)
