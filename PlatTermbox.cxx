@@ -4,6 +4,10 @@
 // which is available under the MIT License.You can find the original
 // https://orbitalquark.github.io/scinterm/
 
+#include <cassert>
+#include <cstring>
+#include <cmath>
+
 #include <algorithm>
 #include <map>
 #include <memory>
