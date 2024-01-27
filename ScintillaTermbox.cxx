@@ -229,7 +229,7 @@ public:
     vs.SetElementRGB(Element::SelectionAdditionalText, 0x000000);
     vs.SetElementRGB(Element::SelectionAdditionalBack, 0xFFFFFF);
     vs.SetElementRGB(Element::Caret, 0xFFFFFF); // white caret
-    //    vs.caret.style = CaretStyle::Curses; // block carets
+    vs.caret.style = CaretStyle::Curses; // block carets
     vs.leftMarginWidth = 0, vs.rightMarginWidth = 0; // no margins
     vs.ms[1].width = 2; // marker margin width should be 1
     vs.extraDescent = -1; // hack to make lineHeight 1 instead of 2
