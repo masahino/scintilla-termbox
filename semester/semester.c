@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "Scintilla.h"
 #include "SciLexer.h"
@@ -13,8 +14,42 @@
 
 typedef void Scintilla;
 
+/* Search-match indicator, mirroring Mrbmacs::Application#search_highlight:
+   INDIC_STRAIGHTBOX (style 8) so it goes through SurfaceImpl::AlphaRectangle. */
+#define SEARCH_INDIC 8
+
 void scnotification(Scintilla *view, int msg, SCNotification *n, void *userdata) {
   // fprintf(stderr, "SCNotification received: %i\n", n->nmhdr.code);
+}
+
+/* Paint SEARCH_INDIC over every occurrence of `term` in the whole document,
+   the same loop mrbmacs runs (target search advancing past each match). */
+static void highlight_all(Scintilla *sci, const char *term) {
+  long len = SSM(SCI_GETLENGTH, 0, 0);
+  SSM(SCI_SETINDICATORCURRENT, SEARCH_INDIC, 0);
+  SSM(SCI_INDICATORCLEARRANGE, 0, len);
+  long tlen = (long)strlen(term);
+  if (tlen == 0) {
+    return;
+  }
+  long pos = 0;
+  int count = 0;
+  while (pos < len) {
+    SSM(SCI_SETTARGETSTART, pos, 0);
+    SSM(SCI_SETTARGETEND, len, 0);
+    if (SSM(SCI_SEARCHINTARGET, tlen, (sptr_t)term) < 0) {
+      break;
+    }
+    long s = SSM(SCI_GETTARGETSTART, 0, 0);
+    long e = SSM(SCI_GETTARGETEND, 0, 0);
+    if (e <= s) {
+      break;
+    }
+    SSM(SCI_INDICATORFILLRANGE, s, e - s);
+    count++;
+    pos = e;
+  }
+  fprintf(stderr, "highlight_all(\"%s\"): %d matches\n", term, count);
 }
 
 int main(int argc, char **argv) {
@@ -63,16 +98,24 @@ int main(int argc, char **argv) {
   SSM(SCI_SETINDENTATIONGUIDES, 2, 2);
   SSM(SCI_SETHIGHLIGHTGUIDE, 1, 1);
 
-  // indicator
+  // old TEXTFORE indicator, kept for comparison (Ctrl-R toggles it)
   SSM(SCI_INDICSETFORE, 9, 0x007f00);
   SSM(SCI_INDICSETSTYLE, 9, 17);
   SSM(SCI_INDICSETUNDER, 9, 0);
-  SSM(SCI_SETINDICATORVALUE, 9, 0);
-  SSM(SCI_SETINDICATORCURRENT, 9, 0);
-  SSM(SCI_INDICATORFILLRANGE, 1, 5);
+
+  // search-match indicator: translucent box behind text (INDIC_STRAIGHTBOX),
+  // exercised through SurfaceImpl::AlphaRectangle
+  SSM(SCI_INDICSETSTYLE, SEARCH_INDIC, INDIC_STRAIGHTBOX);
+  SSM(SCI_INDICSETFORE, SEARCH_INDIC, 0x6f4f2f);
+  SSM(SCI_INDICSETALPHA, SEARCH_INDIC, 60);
+  SSM(SCI_INDICSETOUTLINEALPHA, SEARCH_INDIC, 160);
+  SSM(SCI_INDICSETUNDER, SEARCH_INDIC, 0);
+  highlight_all(sci, "argc");
 
   SSM(SCI_SETFOCUS, 1, 0);
   scintilla_refresh(sci);
+  bool search_on = true;
+  bool textfore_on = false;
 
 struct tb_event ev;
 int c;
@@ -113,7 +156,7 @@ while (tb_poll_event(&ev))
           scintilla_move(sci, 10, 19);
           break;
         case TB_KEY_CTRL_C:
-          SSM(SCI_AUTOCSHOW, 0, "abc •opq xyz 01234567890 漢字 xxx xxx xxx xxx");
+          SSM(SCI_AUTOCSHOW, 0, (sptr_t)"abc •opq xyz 01234567890 漢字 xxx xxx xxx xxx");
           break;
         case TB_KEY_CTRL_D:
           SSM(SCI_AUTOCSETMAXHEIGHT, 16, 0);
@@ -125,13 +168,29 @@ while (tb_poll_event(&ev))
           SSM(SCI_SETVSCROLLBAR, 1, 0);
           break;
         case TB_KEY_CTRL_G:
-          SSM(SCI_CALLTIPSHOW, 40, "\001\nhoge\n\002");
+          SSM(SCI_CALLTIPSHOW, 40, (sptr_t)"\001\nhoge\n\002");
           break;
         case TB_KEY_CTRL_H:
         fprintf(stderr, "ctrl-h\n");
-          SSM(SCI_ANNOTATIONSETTEXT, 2, "hogehoge\n\nabc");
+          SSM(SCI_ANNOTATIONSETTEXT, 2, (sptr_t)"hogehoge\n\nabc");
         SSM(SCI_ANNOTATIONSETSTYLE, 2, 253);
         SSM(SCI_ANNOTATIONSETVISIBLE, 3, 0);
+          break;
+        case TB_KEY_CTRL_T:
+          /* toggle the INDIC_STRAIGHTBOX search-match highlight */
+          search_on = !search_on;
+          highlight_all(sci, search_on ? "argc" : "");
+          scintilla_refresh(sci);
+          break;
+        case TB_KEY_CTRL_R:
+          /* toggle the old INDIC_TEXTFORE indicator for comparison */
+          textfore_on = !textfore_on;
+          SSM(SCI_SETINDICATORCURRENT, 9, 0);
+          SSM(SCI_INDICATORCLEARRANGE, 0, SSM(SCI_GETLENGTH, 0, 0));
+          if (textfore_on) {
+            SSM(SCI_INDICATORFILLRANGE, 0, 3);
+          }
+          scintilla_refresh(sci);
           break;
         default:
           break;

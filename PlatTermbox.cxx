@@ -279,17 +279,44 @@ void SurfaceImpl::FillRectangle(PRectangle rc, Surface &surfacePattern) {
  */
 void SurfaceImpl::RoundedRectangle(PRectangle rc, FillStroke fillStroke) {}
 /**
- * Drawing alpha rectangles is not fully supported.
- * Instead, fills the background color of the given rectangle with the fill
- * color, emulating INDIC_STRAIGHTBOX with no transparency. This is called by
- * Scintilla to draw INDIC_ROUNDBOX and INDIC_STRAIGHTBOX indicators, text
- * blobs, and translucent line states and selections.
+ * There is no blending in the terminal, so translucent rectangles are
+ * approximated by re-painting the background colour of each covered cell with
+ * the fill colour while keeping the character and its foreground colour. This
+ * is what INDIC_STRAIGHTBOX / INDIC_ROUNDBOX indicators, translucent
+ * selections and translucent line states end up looking like: a solid tint
+ * behind the existing text. `cornerSize` and the outline stroke are ignored.
  */
 void SurfaceImpl::AlphaRectangle(PRectangle rc, XYPOSITION cornerSize,
                                  FillStroke fillStroke) {
+  if (pattern == true || !win)
+    return;
+
+  TermboxWin *w = reinterpret_cast<TermboxWin *>(win);
+  const int right = std::min(static_cast<int>(rc.right), w->Width());
+  const uint32_t bg = to_rgb(fillStroke.fill.colour);
+
+  /* scinterm's PlatCurses paints a single row at rc.top - 1: for a
+     one-cell-tall line the box rect Scintilla hands over for
+     INDIC_STRAIGHTBOX / INDIC_ROUNDBOX sits just under the glyph row. */
+  const int y = static_cast<int>(rc.top) - 1;
+  const int x0 = std::max(static_cast<int>(rc.left), static_cast<int>(clip.left));
+
 #ifdef DEBUG
-  fprintf(stderr, "AlphaRectangle\n");
+  fprintf(stderr,
+          "AlphaRectangle rc=(%.1f,%.1f,%.1f,%.1f) y=%d x0..r=%d..%d bg=%06x\n",
+          rc.left, rc.top, rc.right, rc.bottom, y, x0, right, bg);
 #endif
+
+  if (y < 0 || y >= w->Height())
+    return;
+
+  struct tb_cell *buffer = tb_cell_buffer();
+  const int stride = tb_width();
+  for (int x = x0; x < right; x++) {
+    const struct tb_cell &cell = buffer[(w->top + y) * stride + (w->left + x)];
+    const uint32_t ch = cell.ch ? cell.ch : ' ';
+    tb_change_cell(w->left + x, w->top + y, ch, cell.fg, bg);
+  }
 }
 
 /** Drawing gradients is not implemented. */
