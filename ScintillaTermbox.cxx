@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <memory>
 #include <chrono>
+#include <cstdlib>
 
 #include "ScintillaTypes.h"
 #include "ScintillaMessages.h"
